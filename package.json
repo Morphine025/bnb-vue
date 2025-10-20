@@ -1,0 +1,59 @@
+{
+  "name": "uniapp-bnb",
+  "version": "1.0.0",
+  "description": "基于uni-app的民宿转让平台",
+  "main": "main.js",
+  "scripts": {
+    "dev": "uni build --watch",
+    "build": "uni build",
+    "build:mp-weixin": "uni build --platform mp-weixin",
+    "build:h5": "uni build --platform h5",
+    "build:app": "uni build --platform app",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint . --ext .vue,.js",
+    "lint:fix": "eslint . --ext .vue,.js --fix",
+    "clean": "rimraf unpackage",
+    "serve": "uni serve"
+  },
+  "keywords": [
+    "uniapp",
+    "vue3",
+    "pinia",
+    "民宿",
+    "转让"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "clipboard": "^2.0.11",
+    "dayjs": "^1.11.18",
+    "pinia": "^3.0.3"
+  },
+  "devDependencies": {
+    "@vue/compiler-sfc": "^3.3.0",
+    "eslint": "^8.50.0",
+    "eslint-plugin-vue": "^9.17.0",
+    "jest": "^29.7.0",
+    "rimraf": "^5.0.0",
+    "sass": "^1.69.0",
+    "sass-loader": "^13.3.0",
+    "@vue/vue3-jest": "^29.2.0",
+    "babel-jest": "^29.7.0",
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/uniapp-bnb.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/uniapp-bnb/issues"
+  },
+  "homepage": "https://github.com/your-username/uniapp-bnb#readme"
+}
