@@ -1,7 +1,7 @@
 /**
  * 用户相关API模块
  * 功能描述：统一管理用户相关的API调用
- * 主要功能：用户信息、关注、粉丝、统计等操作
+ * 主要功能：用户信息、关注、粉丝、统计、用户民宿数据等操作
  */
 
 import { BaseAPI, createAPI } from '../core/BaseAPI'
@@ -240,6 +240,32 @@ export class UserAPI extends BaseAPI {
   static async getLandlordContact(landlordId) {
     return this.getById('/contact', landlordId, {
       errorMessage: '获取房东联系信息失败'
+    })
+  }
+
+  /**
+   * 获取我的发布列表
+   * @param {object} params - 查询参数
+   * @returns {Promise} 发布列表
+   */
+  static async getMyList(params = {}) {
+    return this.getList('/homestay/myList', params, {
+      errorMessage: '获取我的发布列表失败'
+    })
+  }
+
+  /**
+   * 获取用户发布的民宿列表
+   * @param {string} userId - 用户ID
+   * @param {object} params - 查询参数
+   * @returns {Promise} 用户民宿列表
+   */
+  static async getUserList(userId, params = {}) {
+    return this.get('/homestay/userList', {
+      userId,
+      ...params
+    }, {
+      errorMessage: '获取用户民宿列表失败'
     })
   }
 }

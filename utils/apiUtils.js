@@ -5,7 +5,7 @@
  */
 
 // 导入错误处理器
-import { globalErrorHandler } from '../core/ErrorHandler'
+import { globalErrorHandler } from '../api/core/ErrorHandler'
 
 /**
  * 生成请求ID

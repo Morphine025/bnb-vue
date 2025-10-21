@@ -376,7 +376,7 @@ export const useHomestayStore = defineStore('homestay', () => {
   const fetchMyHomestayList = async (page = 1, size = 10) => {
     setLoading(true)
     try {
-      const response = await API.homestay.getMyList({ page, size })
+      const response = await API.user.getMyList({ page, size })
       if (response && response.code === 1) {
         const myList = response.data.list || []
         return myList

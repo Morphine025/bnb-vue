@@ -1,7 +1,7 @@
 /**
  * 搜索相关API模块
  * 功能描述：统一管理搜索相关的API调用
- * 主要功能：搜索民宿、搜索建议、热门搜索等操作
+ * 主要功能：搜索建议、热门搜索、搜索历史等操作
  */
 
 import { BaseAPI, createAPI } from '../core/BaseAPI'
@@ -18,17 +18,6 @@ const searchAPI = createAPI({
 export class SearchAPI extends BaseAPI {
   // 基础路径
   static basePath = '/search'
-
-  /**
-   * 搜索民宿
-   * @param {object} params - 搜索参数
-   * @returns {Promise} 搜索结果
-   */
-  static async searchHomestay(params = {}) {
-    return this.get('/homestay/search', params, {
-      errorMessage: '搜索民宿失败'
-    })
-  }
 
   /**
    * 获取搜索建议
@@ -68,27 +57,6 @@ export class SearchAPI extends BaseAPI {
   static async clearSearchHistory() {
     return this.delete('/search/history', {}, {
       errorMessage: '清除搜索历史失败'
-    })
-  }
-
-  /**
-   * 搜索地区
-   * @param {string} regionName - 地区名称
-   * @returns {Promise} 地区搜索结果
-   */
-  static async searchRegions(regionName) {
-    return this.get('/region/search', { regionName }, {
-      errorMessage: '搜索地区失败'
-    })
-  }
-
-  /**
-   * 获取省市区树形结构
-   * @returns {Promise} 地区树形结构
-   */
-  static async getRegionTree() {
-    return this.get('/region/tree', {}, {
-      errorMessage: '获取地区树形结构失败'
     })
   }
 }

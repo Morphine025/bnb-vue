@@ -33,6 +33,21 @@ uniapp-bnb-test/
 │   ├── config/            # API配置
 │   ├── interceptors/      # 请求拦截器
 │   └── index.js           # API统一入口
+├── utils/                  # 工具函数目录
+│   ├── apiUtils.js        # API相关工具函数
+│   ├── cacheManager.js    # 缓存管理工具
+│   ├── constants.js       # 常量定义
+│   ├── dataValidator.js   # 数据验证工具
+│   ├── debounce.js        # 防抖函数
+│   ├── debugHelper.js     # 调试工具
+│   ├── errorHandler.js    # 错误处理工具
+│   ├── homestayStatus.js  # 民宿状态工具
+│   ├── inputSanitizer.js  # 输入清理工具
+│   ├── loadingManager.js  # 加载管理工具
+│   ├── performanceMonitor.js # 性能监控工具
+│   ├── priceFormatter.js  # 价格格式化工具
+│   ├── shareUtils.js      # 分享工具
+│   └── userInfo.js        # 用户信息工具
 ├── stores/                # Pinia状态管理
 │   ├── modules/           # 模块化Store
 │   │   ├── homestay/     # 民宿相关状态

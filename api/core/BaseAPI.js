@@ -5,7 +5,7 @@
  */
 
 import http from '../http'
-import { handleApiError } from '../utils/apiUtils'
+import { handleApiError } from '../../utils/apiUtils'
 
 /**
  * API基类 - 提供通用的CRUD操作

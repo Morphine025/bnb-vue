@@ -182,7 +182,7 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 			loading.value = true
 			currentPage.value = 1
 			
-			const response = await API.homestay.getMyList({
+			const response = await API.user.getMyList({
 				page: currentPage.value,
 				size: pageSize
 			})
@@ -221,7 +221,7 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 			loadingMore.value = true
 			currentPage.value++
 			
-			const response = await API.homestay.getMyList({
+			const response = await API.user.getMyList({
 				page: currentPage.value,
 				size: pageSize
 			})

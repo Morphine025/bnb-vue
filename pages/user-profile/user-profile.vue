@@ -465,7 +465,7 @@
 			console.log('开始加载用户民宿列表:', userInfo.userId)
 			console.log('调用API: getUserHomestays')
 			console.log('API参数:', { userId: userInfo.userId, page: 1, size: 20 })
-			const response = await API.homestay.getUserList(userInfo.userId, { page: 1, size: 20 })
+			const response = await API.user.getUserList(userInfo.userId, { page: 1, size: 20 })
 			console.log('API响应:', response)
 			
 			if (response && response.code === 1) {

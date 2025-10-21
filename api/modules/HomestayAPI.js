@@ -138,17 +138,6 @@ export class HomestayAPI extends BaseAPI {
   }
 
   /**
-   * 获取我的发布列表
-   * @param {object} params - 查询参数
-   * @returns {Promise} 发布列表
-   */
-  static async getMyList(params = {}) {
-    return this.getList('/homestay/myList', params, {
-      errorMessage: '获取我的发布列表失败'
-    })
-  }
-
-  /**
    * 根据地区筛选民宿
    * @param {object} params - 筛选参数
    * @returns {Promise} 筛选结果
@@ -156,21 +145,6 @@ export class HomestayAPI extends BaseAPI {
   static async filterByRegion(params = {}) {
     return this.get('/homestay/filterByRegion', params, {
       errorMessage: '地区筛选失败'
-    })
-  }
-
-  /**
-   * 获取用户发布的民宿列表
-   * @param {string} userId - 用户ID
-   * @param {object} params - 查询参数
-   * @returns {Promise} 用户民宿列表
-   */
-  static async getUserList(userId, params = {}) {
-    return this.get('/homestay/userList', {
-      userId,
-      ...params
-    }, {
-      errorMessage: '获取用户民宿列表失败'
     })
   }
 

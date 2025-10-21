@@ -11,7 +11,6 @@ api/
 ├── config/index.js          # 统一配置管理
 ├── index.js                # 统一API入口
 ├── http.js                 # HTTP请求封装
-├── api.js                  # 传统API函数（兼容性）
 ├── core/                   # 核心功能
 │   ├── BaseAPI.js         # API基类
 │   └── ErrorHandler.js    # 错误处理
@@ -24,9 +23,23 @@ api/
 │   ├── SearchAPI.js       # 搜索相关API
 │   ├── RegionAPI.js       # 地区相关API
 │   └── ChatAPI.js         # 聊天相关API
-├── utils/                  # API工具函数
-│   └── apiUtils.js        # API工具方法
 └── services/              # 服务层（空目录）
+
+utils/                     # 工具函数目录（根目录）
+├── apiUtils.js            # API相关工具函数
+├── cacheManager.js        # 缓存管理工具
+├── constants.js           # 常量定义
+├── dataValidator.js       # 数据验证工具
+├── debounce.js           # 防抖函数
+├── debugHelper.js        # 调试工具
+├── errorHandler.js       # 错误处理工具
+├── homestayStatus.js     # 民宿状态工具
+├── inputSanitizer.js     # 输入清理工具
+├── loadingManager.js     # 加载管理工具
+├── performanceMonitor.js  # 性能监控工具
+├── priceFormatter.js     # 价格格式化工具
+├── shareUtils.js         # 分享工具
+└── userInfo.js           # 用户信息工具
 ```
 
 ## 🚀 推荐使用方式
@@ -40,19 +53,26 @@ import { API } from '@/api'
 const userInfo = await API.user.getInfo()
 const userStats = await API.user.getStats()
 const followList = await API.user.getFollowList({ page: 1, size: 10 })
+const myList = await API.user.getMyList({ page: 1, size: 10 })
+const userList = await API.user.getUserList(userId, { page: 1, size: 10 })
 
 // 民宿相关
 const homestayList = await API.homestay.getHomeList({ page: 1, size: 10 })
 const homestayDetail = await API.homestay.getDetail(homestayId)
 const searchResults = await API.homestay.search({ keyword: '民宿' })
 
-// 搜索相关
+// 搜索相关（搜索建议、热门搜索等）
 const suggestions = await API.search.getSuggestions({ keyword: '民宿' })
 const hotSearches = await API.search.getHotSearches()
+
+// 民宿搜索（已统一到HomestayAPI）
+const searchResults = await API.homestay.search({ keyword: '民宿' })
 
 // 地区相关
 const provinces = await API.region.getProvinces()
 const cities = await API.region.getCitiesByProvince(provinceCode)
+const searchResults = await API.region.searchRegions('北京')
+const regionTree = await API.region.getRegionTree()
 
 // 聊天相关
 const conversations = await API.chat.getConversations()
@@ -331,6 +351,10 @@ console.log('Loading状态:', getLoadingStatus())
 - **v1.5.0**: 添加请求/响应拦截器
 - **v1.6.0**: 优化API文档和架构说明
 - **v1.7.0**: 添加渐进式迁移指南
+- **v1.8.0**: 优化工具函数架构，将apiUtils移至根目录utils
+- **v1.9.0**: 统一搜索功能，将民宿搜索迁移到HomestayAPI
+- **v1.10.0**: 统一地区功能，将地区搜索和树形结构迁移到RegionAPI
+- **v1.11.0**: 统一用户数据功能，将用户民宿数据迁移到UserAPI
 
 ## 🔄 迁移指南
 
@@ -372,6 +396,8 @@ const user = await API.user.getInfo()
 - 关注/粉丝管理：`API.user.getFollowList()`, `API.user.getFansList()`
 - 浏览历史：`API.user.getViewHistory()`, `API.user.addViewHistory()`
 - 收藏/喜欢：`API.user.getCollectList()`, `API.user.getLikeList()`
+- 我的发布：`API.user.getMyList()`
+- 用户民宿：`API.user.getUserList()`
 
 ### 民宿相关接口
 - 轮播图：`API.homestay.getBanner()`
@@ -388,13 +414,18 @@ const user = await API.user.getInfo()
 - 搜索建议：`API.search.getSuggestions()`
 - 热门搜索：`API.search.getHotSearches()`
 - 搜索历史：`API.search.getSearchHistory()`
-- 地区搜索：`API.search.searchRegions()`
+
+**注意：** 
+- 民宿搜索功能已统一到 `API.homestay.search()`
+- 地区搜索功能已统一到 `API.region.searchRegions()`
 
 ### 地区相关接口
 - 省份列表：`API.region.getProvinces()`
 - 城市列表：`API.region.getCitiesByProvince()`
 - 区县列表：`API.region.getDistrictsByCity()`
 - 标签列表：`API.region.getTagList()`
+- 地区搜索：`API.region.searchRegions()`
+- 地区树形：`API.region.getRegionTree()`
 
 ### 聊天相关接口
 - 创建对话：`API.chat.createConversation()`

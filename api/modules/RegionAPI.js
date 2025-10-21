@@ -1,7 +1,7 @@
 /**
  * 地区相关API模块
  * 功能描述：统一管理地区相关的API调用
- * 主要功能：省份、城市、区县数据获取
+ * 主要功能：省份、城市、区县数据获取，地区搜索，地区树形结构
  */
 
 import { BaseAPI, createAPI } from '../core/BaseAPI'
@@ -58,6 +58,27 @@ export class RegionAPI extends BaseAPI {
   static async getTagList() {
     return this.get('/bnb/tag/list', {}, {
       errorMessage: '获取标签列表失败'
+    })
+  }
+
+  /**
+   * 搜索地区
+   * @param {string} regionName - 地区名称
+   * @returns {Promise} 地区搜索结果
+   */
+  static async searchRegions(regionName) {
+    return this.get('/region/search', { regionName }, {
+      errorMessage: '搜索地区失败'
+    })
+  }
+
+  /**
+   * 获取省市区树形结构
+   * @returns {Promise} 地区树形结构
+   */
+  static async getRegionTree() {
+    return this.get('/region/tree', {}, {
+      errorMessage: '获取地区树形结构失败'
     })
   }
 }
