@@ -97,7 +97,7 @@ import { ref, reactive } from "vue";
 import { API } from '../../api'
 
 // 导入Loading管理工具
-import { showLoading, hideLoading } from '../../utils/loadingManager'
+import { showLoading, hideLoading } from '@/utils'
 
 // 响应式数据定义
 const conversations = ref([]);

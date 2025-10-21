@@ -95,20 +95,20 @@
 	// 导入API
 	// 导入API接口 - 使用新的统一API
 	import { API } from '../../api'
-import { showLoading, hideLoading } from '../../utils/loadingManager'
-	import { refreshUserInfo } from '/utils/userInfo.js'
+import { showLoading, hideLoading } from '@/utils'
+	import { refreshUserInfo } from '@/utils'
 	
 	// 导入工具函数
-	import { handleError, showSuccess } from '/utils/errorHandler.js'
-	import { createDebouncedSave } from '/utils/debounce.js'
-	import { sanitizeUserInfo } from '/utils/inputSanitizer.js'
+	import { handleError, showSuccess } from '@/utils'
+	import { createDebouncedSave } from '@/utils'
+	import { sanitizeUserInfo } from '@/utils'
 	import { 
 		FORM_CONSTANTS, 
 		TIPS_MESSAGES, 
 		LOADING_TEXT, 
 		PAGE_CONFIG,
 		FIELD_LABELS
-	} from '/utils/constants.js'
+	} from '@/utils'
 	
 	// 响应式数据
 	const loading = ref(false)

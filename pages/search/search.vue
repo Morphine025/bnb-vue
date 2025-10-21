@@ -159,7 +159,7 @@
 	import { ref, reactive, computed } from 'vue'
 	
 	// 导入防抖工具
-	import { debounce } from '../../utils/debounce.js'
+	import { debounce } from '@/utils'
 	
 	// 导入Pinia stores - 使用新的模块化Store
 	import { 
@@ -169,7 +169,7 @@
 	} from '../../stores'
 	
 	// 导入价格格式化工具
-	import { formatPrice } from '../../utils/priceFormatter.js'
+	import { formatPrice } from '@/utils'
 
 	// 使用新的模块化Store
 	const searchStore = useSearchStore()

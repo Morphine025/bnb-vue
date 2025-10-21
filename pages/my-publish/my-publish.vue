@@ -147,7 +147,7 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 	import { API } from '../../api'
 	
 	// 导入Loading管理工具
-	import { showLoading, hideLoading } from '../../utils/loadingManager'
+	import { showLoading, hideLoading } from '@/utils'
 	
 	// 导入状态管理工具
 	import { 
@@ -156,7 +156,7 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 		getStatusColor,
 		getAvailableActions,
 		HOMESTAY_STATUS 
-	} from '../../utils/homestayStatus.js'
+	} from '@/utils'
 	
 	// 响应式数据定义
 	const loading = ref(false)

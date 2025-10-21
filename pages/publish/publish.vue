@@ -31,7 +31,7 @@
 	import { onLoad } from '@dcloudio/uni-app'
 	
 	// 导入Loading管理工具
-	import { showLoading, hideLoading } from '../../utils/loadingManager'
+	import { showLoading, hideLoading } from '@/utils'
 	
 	/**
 	 * 页面加载时初始化

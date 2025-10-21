@@ -88,10 +88,10 @@
 	import { API } from '../../api'
 	
 	// 导入价格格式化工具
-	import { formatPrice } from '../../utils/priceFormatter.js'
+	import { formatPrice } from '@/utils'
 	
 	// 导入分享工具
-	import { showShareOptions } from '../../utils/shareUtils.js'
+	import { showShareOptions } from '@/utils'
 
 	// 响应式数据
 	const likeList = ref([])

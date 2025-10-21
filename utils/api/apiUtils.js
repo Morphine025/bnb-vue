@@ -5,15 +5,15 @@
  */
 
 // 导入错误处理器
-import { globalErrorHandler } from '../api/core/ErrorHandler'
+import { globalErrorHandler } from '../../api/core/ErrorHandler'
 
 /**
  * 生成请求ID
  * @returns {string} 请求ID
  */
 export const generateRequestId = () => {
-  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-}
+  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
 
 /**
  * 处理API错误 - 兼容新的错误处理机制
@@ -21,15 +21,15 @@ export const generateRequestId = () => {
  * @param {string} defaultMessage - 默认错误消息
  * @returns {Error} 处理后的错误
  */
-export const handleApiError = (error, defaultMessage = '请求失败') => {
+export const handleApiError = (error, defaultMessage = "请求失败") => {
   // 使用新的错误处理机制
-  const errorInfo = globalErrorHandler.classifyError(error)
-  
+  const errorInfo = globalErrorHandler.classifyError(error);
+
   // 返回处理后的错误
-  const processedError = new Error(errorInfo.message || defaultMessage)
-  processedError.code = errorInfo.code
-  processedError.type = errorInfo.type
-  processedError.level = errorInfo.level
-  
-  return processedError
-}
+  const processedError = new Error(errorInfo.message || defaultMessage);
+  processedError.code = errorInfo.code;
+  processedError.type = errorInfo.type;
+  processedError.level = errorInfo.level;
+
+  return processedError;
+};

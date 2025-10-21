@@ -5,7 +5,7 @@
  */
 
 import http from '../http'
-import { handleApiError } from '../../utils/apiUtils'
+import { handleApiError } from '@/utils'
 
 /**
  * API基类 - 提供通用的CRUD操作
@@ -142,23 +142,23 @@ export function createAPI(config) {
   
   // 生成基础CRUD方法
   if (methods.includes('get')) {
-    api.get = (path, params, options) => BaseAPI.get(`${basePath}${path}`, params, options)
-    api.getList = (path, params, options) => BaseAPI.getList(`${basePath}${path}`, params, options)
-    api.getById = (path, id, options) => BaseAPI.getById(`${basePath}${path}`, id, options)
+    api.get = async (path, params, options) => await BaseAPI.get(`${basePath}${path}`, params, options)
+    api.getList = async (path, params, options) => await BaseAPI.getList(`${basePath}${path}`, params, options)
+    api.getById = async (path, id, options) => await BaseAPI.getById(`${basePath}${path}`, id, options)
   }
   
   if (methods.includes('post')) {
-    api.post = (path, data, options) => BaseAPI.post(`${basePath}${path}`, data, options)
+    api.post = async (path, data, options) => await BaseAPI.post(`${basePath}${path}`, data, options)
   }
   
   if (methods.includes('put')) {
-    api.put = (path, data, options) => BaseAPI.put(`${basePath}${path}`, data, options)
-    api.updateById = (path, id, data, options) => BaseAPI.updateById(`${basePath}${path}`, id, data, options)
+    api.put = async (path, data, options) => await BaseAPI.put(`${basePath}${path}`, data, options)
+    api.updateById = async (path, id, data, options) => await BaseAPI.updateById(`${basePath}${path}`, id, data, options)
   }
   
   if (methods.includes('delete')) {
-    api.delete = (path, data, options) => BaseAPI.delete(`${basePath}${path}`, data, options)
-    api.deleteById = (path, id, options) => BaseAPI.deleteById(`${basePath}${path}`, id, options)
+    api.delete = async (path, data, options) => await BaseAPI.delete(`${basePath}${path}`, data, options)
+    api.deleteById = async (path, id, options) => await BaseAPI.deleteById(`${basePath}${path}`, id, options)
   }
   
   return api

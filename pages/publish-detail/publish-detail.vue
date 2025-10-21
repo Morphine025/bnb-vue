@@ -290,7 +290,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { API } from '@/api'
-import { showLoading, hideLoading } from '@/utils/loadingManager'
+import { showLoading, hideLoading } from '@/utils'
 
 // 响应式数据
 const loading = ref(false)

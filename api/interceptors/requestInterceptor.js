@@ -4,7 +4,7 @@
  * 主要功能：添加认证头、请求ID、参数验证等
  */
 
-import { generateRequestId } from '../../utils/apiUtils'
+import { generateRequestId } from '@/utils'
 
 /**
  * 请求拦截器

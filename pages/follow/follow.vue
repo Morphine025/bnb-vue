@@ -225,7 +225,7 @@
 	} from 'vue'
 	
 	// 导入价格格式化工具
-	import { formatPrice } from '../../utils/priceFormatter.js'
+	import { formatPrice } from '@/utils'
 
 	// 响应式数据定义
 	const followList = ref([]) // 关注用户发布信息列表

@@ -125,7 +125,7 @@
 	} from '../../stores'
 	
 	// 导入用户信息工具
-	import { refreshUserInfo } from '/utils/userInfo.js'
+	import { refreshUserInfo } from '@/utils'
 
 	// 使用新的模块化Store
 	const userProfileStore = useUserProfileStore()

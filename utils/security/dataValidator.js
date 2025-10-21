@@ -7,7 +7,25 @@
 /**
  * 验证关注列表数据结构
  * @param {Object} data - API返回的数据
+ * @param {number} data.code - 状态码，1表示成功
+ * @param {Object} data.data - 数据对象
+ * @param {Array} data.data.list - 关注列表数组
+ * @param {number} data.data.total - 总数
+ * @param {number} data.data.page - 页码
+ * @param {number} data.data.size - 每页数量
  * @returns {Object} 验证结果
+ * @returns {boolean} result.isValid - 是否验证通过
+ * @returns {Object|null} result.data - 验证通过的数据
+ * @returns {Array} result.errors - 错误信息数组
+ * @throws {Error} 当数据验证过程中发生异常
+ * @example
+ * // 验证关注列表数据
+ * const result = validateFollowListData(apiResponse)
+ * if (result.isValid) {
+ *   console.log('数据有效:', result.data)
+ * } else {
+ *   console.error('验证失败:', result.errors)
+ * }
  */
 export const validateFollowListData = (data) => {
   const result = {

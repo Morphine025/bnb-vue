@@ -8,26 +8,74 @@
 
 ```
 utils/
-├── apiUtils.js              # API工具函数
-├── cacheManager.js          # 缓存管理器
-├── constants.js             # 应用常量定义
-├── dataValidator.js         # 数据验证工具
-├── debounce.js              # 防抖节流工具
-├── debugHelper.js           # 调试辅助工具
-├── errorHandler.js          # 统一错误处理
-├── homestayStatus.js        # 民宿状态管理
-├── inputSanitizer.js        # 输入清理工具
-├── loadingManager.js        # Loading状态管理
-├── performanceMonitor.js    # 性能监控工具
-├── priceFormatter.js        # 价格格式化工具
-├── shareUtils.js            # 分享工具
-├── userInfo.js              # 用户信息管理
-└── README.md               # 本文档
+├── security/                # 安全相关工具
+│   ├── inputSanitizer.js   # 输入清理工具
+│   └── dataValidator.js    # 数据验证工具
+├── performance/             # 性能相关工具
+│   ├── performanceMonitor.js # 性能监控工具
+│   └── debounce.js         # 防抖节流工具
+├── api/                    # API相关工具
+│   ├── apiUtils.js         # API工具函数
+│   └── errorHandler.js     # 统一错误处理
+├── cache/                  # 缓存相关工具
+│   └── cacheManager.js     # 缓存管理器
+├── ui/                     # UI相关工具
+│   ├── loadingManager.js   # Loading状态管理
+│   └── shareUtils.js       # 分享工具
+├── business/               # 业务相关工具
+│   ├── homestayStatus.js   # 民宿状态管理
+│   ├── priceFormatter.js   # 价格格式化工具
+│   └── userInfo.js         # 用户信息管理
+├── debug/                  # 调试相关工具
+│   └── debugHelper.js      # 调试辅助工具
+├── constants/              # 常量定义
+│   └── constants.js        # 应用常量定义
+├── index.js               # 统一入口文件
+└── README.md              # 本文档
 ```
 
 ## 工具函数分类
 
-### 1. API 相关工具
+### 1. 安全相关工具 (security/)
+
+#### inputSanitizer.js
+- **功能**: 提供输入数据的清理和安全验证
+- **主要方法**:
+  - `stripHtmlTags()`: 清理HTML标签
+  - `sanitizeSpecialChars()`: 清理特殊字符
+  - `sanitizeInput()`: 清理用户输入
+  - `validatePhone()`: 验证手机号格式
+  - `validateNickname()`: 验证昵称格式
+- **特点**: XSS防护、输入清理、数据验证
+
+#### dataValidator.js
+- **功能**: 提供数据验证和清洗功能
+- **主要方法**:
+  - `validateFollowListData()`: 验证关注列表数据
+  - `validateApiResponse()`: 验证API响应格式
+  - `sanitizeUserInput()`: 清洗用户输入数据
+  - `validatePaginationParams()`: 验证分页参数
+- **特点**: API数据验证、数据清洗、类型检查
+
+### 2. 性能相关工具 (performance/)
+
+#### performanceMonitor.js
+- **功能**: 监控应用性能指标
+- **主要特性**:
+  - 性能指标收集
+  - 内存使用监控
+  - 性能报告生成
+  - 观察者模式
+
+#### debounce.js
+- **功能**: 提供防抖和节流功能
+- **主要方法**:
+  - `debounce()`: 防抖函数
+  - `throttle()`: 节流函数
+  - `cancellableDebounce()`: 可取消的防抖
+  - `createDebouncedSave()`: 创建防抖保存函数
+
+### 3. API相关工具 (api/)
 
 #### apiUtils.js
 - **功能**: 提供API相关的工具函数
@@ -43,17 +91,6 @@ utils/
   - 错误级别管理（低、中、高、严重）
   - 自动用户提示
   - 错误日志记录
-- **使用示例**:
-```javascript
-import { handleError, showSuccess } from '@/utils/errorHandler'
-
-try {
-  // API调用
-} catch (error) {
-  const result = handleError(error, { showToast: true })
-  console.log('错误类型:', result.type)
-}
-```
 
 ### 2. 缓存管理
 

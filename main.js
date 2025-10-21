@@ -5,7 +5,7 @@
  */
 
 import App from './App'
-import { handleError } from './utils/errorHandler.js' // 引入全局错误处理
+import { handleError } from '@/utils' // 引入全局错误处理
 
 // 全局样式已移除，各页面使用独立样式
 

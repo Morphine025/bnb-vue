@@ -7,7 +7,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { API } from '../../../api'
-import { cacheUtils } from '../../../utils/cacheManager.js'
+import { cacheUtils } from '@/utils'
 
 export const useSearchStore = defineStore('search', () => {
   // 当前搜索关键词

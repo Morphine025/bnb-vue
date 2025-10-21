@@ -8,6 +8,11 @@
  * 清理HTML标签
  * @param {string} input - 输入字符串
  * @returns {string} 清理后的字符串
+ * @throws {TypeError} 当input不是字符串时返回空字符串
+ * @example
+ * // 清理HTML标签
+ * const cleanText = stripHtmlTags('<p>Hello <b>World</b></p>')
+ * console.log(cleanText) // "Hello World"
  */
 export const stripHtmlTags = (input) => {
   if (typeof input !== 'string') return ''
@@ -26,6 +31,11 @@ export const stripHtmlTags = (input) => {
  * 清理特殊字符
  * @param {string} input - 输入字符串
  * @returns {string} 清理后的字符串
+ * @throws {TypeError} 当input不是字符串时返回空字符串
+ * @example
+ * // 清理特殊字符
+ * const cleanText = sanitizeSpecialChars('<script>alert("xss")</script>')
+ * console.log(cleanText) // "alert("xss")"
  */
 export const sanitizeSpecialChars = (input) => {
   if (typeof input !== 'string') return ''
@@ -40,8 +50,21 @@ export const sanitizeSpecialChars = (input) => {
 /**
  * 清理用户输入
  * @param {string} input - 输入字符串
- * @param {Object} options - 清理选项
+ * @param {Object} [options={}] - 清理选项
+ * @param {boolean} [options.stripHtml=true] - 是否移除HTML标签
+ * @param {boolean} [options.stripSpecialChars=true] - 是否清理特殊字符
+ * @param {boolean} [options.trim=true] - 是否去除首尾空格
+ * @param {number} [options.maxLength] - 最大长度限制
  * @returns {string} 清理后的字符串
+ * @throws {TypeError} 当input不是字符串时返回空字符串
+ * @example
+ * // 基础清理
+ * const cleanText = sanitizeInput('<p>Hello World</p>')
+ * console.log(cleanText) // "Hello World"
+ * 
+ * // 带选项的清理
+ * const cleanText2 = sanitizeInput('<p>Hello World</p>', { maxLength: 10 })
+ * console.log(cleanText2) // "Hello Worl"
  */
 export const sanitizeInput = (input, options = {}) => {
   if (typeof input !== 'string') return ''
@@ -75,6 +98,14 @@ export const sanitizeInput = (input, options = {}) => {
  * 验证手机号格式
  * @param {string} phone - 手机号
  * @returns {boolean} 验证结果
+ * @throws {TypeError} 当phone不是字符串时返回false
+ * @example
+ * // 验证手机号
+ * const isValid = validatePhone('13800138000')
+ * console.log(isValid) // true
+ * 
+ * const isInvalid = validatePhone('123456')
+ * console.log(isInvalid) // false
  */
 export const validatePhone = (phone) => {
   if (!phone || typeof phone !== 'string') return false

@@ -70,12 +70,31 @@ uniapp-bnb-test/
 │   ├── search/           # 搜索页面
 │   ├── chat/             # 聊天页面
 │   └── user-profile/     # 用户资料页
-├── utils/                 # 工具函数
-│   ├── errorHandler.js   # 错误处理
-│   ├── loadingManager.js # 加载管理
-│   ├── priceFormatter.js # 价格格式化
-│   ├── userInfo.js       # 用户信息工具
-│   └── constants.js      # 常量定义
+├── utils/                 # 工具函数目录
+│   ├── security/         # 安全相关工具
+│   │   ├── inputSanitizer.js # 输入清理工具
+│   │   └── dataValidator.js  # 数据验证工具
+│   ├── performance/      # 性能相关工具
+│   │   ├── performanceMonitor.js # 性能监控工具
+│   │   └── debounce.js  # 防抖节流工具
+│   ├── api/             # API相关工具
+│   │   ├── apiUtils.js  # API工具函数
+│   │   └── errorHandler.js # 统一错误处理
+│   ├── cache/           # 缓存相关工具
+│   │   └── cacheManager.js # 缓存管理器
+│   ├── ui/              # UI相关工具
+│   │   ├── loadingManager.js # Loading状态管理
+│   │   └── shareUtils.js # 分享工具
+│   ├── business/        # 业务相关工具
+│   │   ├── homestayStatus.js # 民宿状态管理
+│   │   ├── priceFormatter.js # 价格格式化工具
+│   │   └── userInfo.js  # 用户信息管理
+│   ├── debug/           # 调试相关工具
+│   │   └── debugHelper.js # 调试辅助工具
+│   ├── constants/       # 常量定义
+│   │   └── constants.js # 应用常量定义
+│   ├── index.js         # 统一入口文件
+│   └── README.md        # 工具函数文档
 ├── static/               # 静态资源
 ├── uni_modules/          # uni-app模块
 ├── App.vue               # 应用根组件

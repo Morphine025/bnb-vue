@@ -249,7 +249,7 @@
 	} from 'vue'
 	
 	// 导入价格格式化工具
-	import { formatPrice } from '../../utils/priceFormatter.js'
+	import { formatPrice } from '@/utils'
 	
 	// 导入API接口
 	// 导入API接口 - 使用新的统一API

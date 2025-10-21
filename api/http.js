@@ -7,7 +7,7 @@
 
 import { requestInterceptor, requestErrorInterceptor } from './interceptors/requestInterceptor'
 import { responseInterceptor, responseErrorInterceptor } from './interceptors/responseInterceptor'
-import { showLoading, hideLoading } from '../utils/loadingManager'
+import { showLoading, hideLoading } from '@/utils'
 
 import { config } from './config'
 

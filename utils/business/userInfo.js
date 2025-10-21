@@ -4,7 +4,7 @@
  */
 
 // 导入API接口 - 使用新的统一API
-import { API } from '../api'
+import { API } from '../../api'
 
 /**
  * 刷新用户信息

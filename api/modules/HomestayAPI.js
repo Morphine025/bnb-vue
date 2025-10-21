@@ -4,18 +4,12 @@
  * 主要功能：民宿列表、详情、收藏、发布等操作
  */
 
-import { BaseAPI, createAPI } from '../core/BaseAPI'
-
-// 创建民宿API实例
-const homestayAPI = createAPI({
-  basePath: '/homestay',
-  methods: ['get', 'post', 'put', 'delete']
-})
+import { BaseAPI } from '../core/BaseAPI.js'
 
 /**
  * 民宿API类 - 继承BaseAPI，提供民宿相关操作
  */
-export class HomestayAPI extends BaseAPI {
+export class HomestayAPI {
   // 基础路径
   static basePath = '/homestay'
 
@@ -24,7 +18,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 轮播图列表
    */
   static async getBanner() {
-    return this.get('/banner/list', {}, {
+    return BaseAPI.get('/banner/list', {}, {
       errorMessage: '获取轮播图失败'
     })
   }
@@ -35,7 +29,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 民宿列表
    */
   static async getHomeList(params = {}) {
-    return this.get('/homestay/homeList', params, {
+    return BaseAPI.get('/homestay/homeList', params, {
       errorMessage: '获取民宿列表失败'
     })
   }
@@ -46,7 +40,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 民宿详情
    */
   static async getDetail(homestayId) {
-    return this.get(`/homestay/detail/${homestayId}`, {}, {
+    return BaseAPI.get(`/homestay/detail/${homestayId}`, {}, {
       errorMessage: '获取民宿详情失败'
     })
   }
@@ -57,7 +51,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 发布结果
    */
   static async publish(data) {
-    return this.post('/homestay/publish', data, {
+    return BaseAPI.post('/homestay/publish', data, {
       errorMessage: '发布民宿失败'
     })
   }
@@ -69,7 +63,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 更新结果
    */
   static async update(homestayId, data) {
-    return this.updateById('/homestay/update', homestayId, data, {
+    return BaseAPI.updateById('/homestay/update', homestayId, data, {
       errorMessage: '更新民宿失败'
     })
   }
@@ -80,7 +74,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 删除结果
    */
   static async delete(homestayId) {
-    return this.deleteById('/homestay/delete', homestayId, {
+    return BaseAPI.deleteById('/homestay/delete', homestayId, {
       errorMessage: '删除民宿失败'
     })
   }
@@ -91,7 +85,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 上架结果
    */
   static async online(homestayId) {
-    return this.post(`/homestay/online/${homestayId}`, {}, {
+    return BaseAPI.post(`/homestay/online/${homestayId}`, {}, {
       errorMessage: '上架民宿失败'
     })
   }
@@ -102,7 +96,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 下架结果
    */
   static async offline(homestayId) {
-    return this.post(`/homestay/offline/${homestayId}`, {}, {
+    return BaseAPI.post(`/homestay/offline/${homestayId}`, {}, {
       errorMessage: '下架民宿失败'
     })
   }
@@ -114,7 +108,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 操作结果
    */
   static async toggleLike(homestayId, action) {
-    return this.post('/homestay/like', {
+    return BaseAPI.post('/homestay/like', {
       homestayId,
       action
     }, {
@@ -129,7 +123,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 操作结果
    */
   static async toggleCollect(homestayId, action) {
-    return this.post('/homestay/collect', {
+    return BaseAPI.post('/homestay/collect', {
       homestayId,
       action
     }, {
@@ -143,7 +137,7 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 筛选结果
    */
   static async filterByRegion(params = {}) {
-    return this.get('/homestay/filterByRegion', params, {
+    return BaseAPI.get('/homestay/filterByRegion', params, {
       errorMessage: '地区筛选失败'
     })
   }
@@ -154,23 +148,14 @@ export class HomestayAPI extends BaseAPI {
    * @returns {Promise} 搜索结果
    */
   static async search(params = {}) {
-    return this.get('/homestay/search', params, {
+    return BaseAPI.get('/homestay/search', params, {
       errorMessage: '搜索民宿失败'
     })
   }
 }
 
 // 导出便捷方法
-export const {
-  get: getHomestay,
-  post: postHomestay,
-  put: putHomestay,
-  delete: deleteHomestay,
-  getList: getHomestayList,
-  getById: getHomestayById,
-  updateById: updateHomestayById,
-  deleteById: deleteHomestayById
-} = homestayAPI
+// 注意：现在直接使用HomestayAPI类的静态方法，不需要导出便捷方法
 
 // 导出类
 export default HomestayAPI

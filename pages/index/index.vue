@@ -312,7 +312,7 @@
 
 // 导入API接口
 import { API } from '../../api'
-import { showLoading, hideLoading } from '../../utils/loadingManager'
+import { showLoading, hideLoading } from '@/utils'
 
 // 导入uni-app生命周期钩子
 import {
@@ -339,7 +339,7 @@ import {
 } from '../../stores'
 
 // 导入价格格式化工具
-import { formatPrice } from '../../utils/priceFormatter.js'
+import { formatPrice } from '@/utils'
 
 // 使用模块化Store
 const homestayListStore = useHomestayListStore()
