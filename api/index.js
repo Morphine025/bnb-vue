@@ -16,24 +16,20 @@ export {
 } from './core/ErrorHandler'
 
 // 导入业务API模块
-export { HomestayAPI } from './modules/HomestayAPI'
-export { UserAPI } from './modules/UserAPI'
-export { SearchAPI } from './modules/SearchAPI'
-export { RegionAPI } from './modules/RegionAPI'
-export { ChatAPI } from './modules/ChatAPI'
+import { HomestayAPI } from './modules/HomestayAPI'
+import { UserAPI } from './modules/UserAPI'
+import { SearchAPI } from './modules/SearchAPI'
+import { RegionAPI } from './modules/RegionAPI'
+import { ChatAPI } from './modules/ChatAPI'
+
+// 导出业务API模块
+export { HomestayAPI, UserAPI, SearchAPI, RegionAPI, ChatAPI }
 
 // 导入配置文件
 import { config } from './config'
 
 // 导入HTTP请求封装
 export { default as http } from './http'
-
-// 创建API实例集合
-import { HomestayAPI } from './modules/HomestayAPI'
-import { UserAPI } from './modules/UserAPI'
-import { SearchAPI } from './modules/SearchAPI'
-import { RegionAPI } from './modules/RegionAPI'
-import { ChatAPI } from './modules/ChatAPI'
 
 /**
  * 统一API对象 - 提供所有API的便捷访问

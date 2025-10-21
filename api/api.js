@@ -1,3 +1,18 @@
+/**
+ * @deprecated 此文件为兼容性文件，建议使用模块化API
+ * 
+ * 迁移指南：
+ * 1. 新代码请使用：import { API } from '@/api'
+ * 2. 将 getBanner() 改为 API.homestay.getBanner()
+ * 3. 将 getUserInfo() 改为 API.user.getInfo()
+ * 4. 详细迁移步骤请查看：./MIGRATION_GUIDE.md
+ * 
+ * 推荐使用方式：
+ * import { API } from '@/api'
+ * const banner = await API.homestay.getBanner()
+ * const user = await API.user.getInfo()
+ */
+
 import http from "./http";
 
 /**
@@ -7,6 +22,7 @@ import http from "./http";
  * 返回参数：轮播图列表
  * url地址：/banner/list
  * 请求方式：GET
+ * @deprecated 请使用 API.homestay.getBanner()
  */
 export const getBanner = () => {
 	return http('/banner/list')

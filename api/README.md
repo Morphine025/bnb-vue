@@ -2,7 +2,7 @@
 
 ## 📋 概述
 
-本项目采用统一的API管理架构，提供三种调用方式，推荐使用模块化API调用方式。
+本项目采用统一的API管理架构，提供模块化API调用方式，支持完整的民宿转让业务功能。
 
 ## 🏗️ 架构设计
 
@@ -11,15 +11,22 @@ api/
 ├── config/index.js          # 统一配置管理
 ├── index.js                # 统一API入口
 ├── http.js                 # HTTP请求封装
+├── api.js                  # 传统API函数（兼容性）
 ├── core/                   # 核心功能
 │   ├── BaseAPI.js         # API基类
 │   └── ErrorHandler.js    # 错误处理
-└── modules/                # 模块化API类
-    ├── UserAPI.js         # 用户相关API
-    ├── HomestayAPI.js     # 民宿相关API
-    ├── SearchAPI.js       # 搜索相关API
-    ├── RegionAPI.js       # 地区相关API
-    └── ChatAPI.js         # 聊天相关API
+├── interceptors/           # 请求/响应拦截器
+│   ├── requestInterceptor.js
+│   └── responseInterceptor.js
+├── modules/                # 模块化API类
+│   ├── UserAPI.js         # 用户相关API
+│   ├── HomestayAPI.js     # 民宿相关API
+│   ├── SearchAPI.js       # 搜索相关API
+│   ├── RegionAPI.js       # 地区相关API
+│   └── ChatAPI.js         # 聊天相关API
+├── utils/                  # API工具函数
+│   └── apiUtils.js        # API工具方法
+└── services/              # 服务层（空目录）
 ```
 
 ## 🚀 推荐使用方式
@@ -320,3 +327,80 @@ console.log('Loading状态:', getLoadingStatus())
 - **v1.1.0**: 添加配置管理
 - **v1.2.0**: 统一Loading管理
 - **v1.3.0**: 修复微信API废弃警告
+- **v1.4.0**: 完善错误处理机制
+- **v1.5.0**: 添加请求/响应拦截器
+- **v1.6.0**: 优化API文档和架构说明
+- **v1.7.0**: 添加渐进式迁移指南
+
+## 🔄 迁移指南
+
+### 从传统API到模块化API
+我们正在从传统的函数式API调用方式迁移到模块化API架构。请查看 [迁移指南](./MIGRATION_GUIDE.md) 了解详细的迁移步骤。
+
+**快速迁移示例：**
+```javascript
+// 旧方式
+import { getBanner, getUserInfo } from '@/api'
+const banner = await getBanner()
+const user = await getUserInfo()
+
+// 新方式（推荐）
+import { API } from '@/api'
+const banner = await API.homestay.getBanner()
+const user = await API.user.getInfo()
+```
+
+## ⚠️ 模块功能重叠问题
+
+### 功能重叠解决方案
+在API模块中发现了一些功能重叠问题，请查看 [模块重叠解决方案](./MODULE_OVERLAP_SOLUTION.md) 了解详细的问题分析和解决方案。
+
+**主要重叠问题：**
+- 搜索功能重叠：SearchAPI和HomestayAPI都包含搜索功能
+- 地区功能重叠：SearchAPI和RegionAPI都包含地区功能
+- 用户数据重叠：UserAPI和HomestayAPI都包含用户相关数据
+
+**查看详细映射表：** [功能重叠映射表](./OVERLAP_MAPPING.md)
+
+## 🔧 API接口总览
+
+### 用户相关接口
+- 用户登录：`API.user.login()`
+- 获取用户信息：`API.user.getInfo()`
+- 更新用户信息：`API.user.updateInfo()`
+- 用户统计：`API.user.getStats()`
+- 关注/粉丝管理：`API.user.getFollowList()`, `API.user.getFansList()`
+- 浏览历史：`API.user.getViewHistory()`, `API.user.addViewHistory()`
+- 收藏/喜欢：`API.user.getCollectList()`, `API.user.getLikeList()`
+
+### 民宿相关接口
+- 轮播图：`API.homestay.getBanner()`
+- 首页列表：`API.homestay.getHomeList()`
+- 民宿详情：`API.homestay.getDetail()`
+- 发布民宿：`API.homestay.publish()`
+- 更新民宿：`API.homestay.update()`
+- 删除民宿：`API.homestay.delete()`
+- 上架/下架：`API.homestay.online()`, `API.homestay.offline()`
+- 点赞/收藏：`API.homestay.toggleLike()`, `API.homestay.toggleCollect()`
+- 搜索民宿：`API.homestay.search()`
+
+### 搜索相关接口
+- 搜索建议：`API.search.getSuggestions()`
+- 热门搜索：`API.search.getHotSearches()`
+- 搜索历史：`API.search.getSearchHistory()`
+- 地区搜索：`API.search.searchRegions()`
+
+### 地区相关接口
+- 省份列表：`API.region.getProvinces()`
+- 城市列表：`API.region.getCitiesByProvince()`
+- 区县列表：`API.region.getDistrictsByCity()`
+- 标签列表：`API.region.getTagList()`
+
+### 聊天相关接口
+- 创建对话：`API.chat.createConversation()`
+- 对话列表：`API.chat.getConversations()`
+- 发送消息：`API.chat.sendMessage()`
+- 消息列表：`API.chat.getMessages()`
+- 标记已读：`API.chat.markMessagesAsRead()`
+- 置顶对话：`API.chat.pinConversation()`
+- 删除对话：`API.chat.deleteConversation()`
