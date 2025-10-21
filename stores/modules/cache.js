@@ -1,22 +1,42 @@
 /**
- * 缓存模块状态管理
- * 功能描述：管理数据缓存和离线数据
- * 主要功能：数据缓存、离线数据、缓存策略、数据同步
+ * 缓存模块状态管理（优化版）
+ * 功能描述：管理数据缓存和离线数据，使用分层缓存策略
+ * 主要功能：数据缓存、离线数据、分层缓存策略、数据同步
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useCacheStrategyStore } from './cache-strategy'
 
 export const useCacheStore = defineStore('cache', () => {
-  // 缓存数据
+  // 使用分层缓存策略
+  const cacheStrategyStore = useCacheStrategyStore()
+  
+  // 缓存数据（保持向后兼容）
   const cacheData = ref(new Map())
   const cacheTimestamps = ref(new Map())
   const cacheSizes = ref(new Map())
   
-  // 缓存配置
+  // 优化后的缓存配置
   const cacheConfig = ref({
-    maxSize: 50 * 1024 * 1024, // 50MB
-    maxAge: 24 * 60 * 60 * 1000, // 24小时
+    // 短期缓存配置
+    shortTerm: {
+      maxSize: 10 * 1024 * 1024, // 10MB
+      maxAge: 5 * 60 * 1000, // 5分钟
+      priority: 'high'
+    },
+    // 中期缓存配置
+    mediumTerm: {
+      maxSize: 50 * 1024 * 1024, // 50MB
+      maxAge: 60 * 60 * 1000, // 1小时
+      priority: 'medium'
+    },
+    // 长期缓存配置
+    longTerm: {
+      maxSize: 100 * 1024 * 1024, // 100MB
+      maxAge: 24 * 60 * 60 * 1000, // 24小时
+      priority: 'low'
+    },
     enableOffline: true,
     enableCompression: true
   })
@@ -72,30 +92,9 @@ export const useCacheStore = defineStore('cache', () => {
 
   const setCache = (key, data, options = {}) => {
     try {
-      const serializedData = JSON.stringify(data)
-      const dataSize = new Blob([serializedData]).size
-      
-      // 检查缓存大小限制
-      if (dataSize > cacheConfig.value.maxSize) {
-        console.warn(`缓存数据过大: ${key}, 大小: ${dataSize}`)
-        return false
-      }
-      
-      // 清理过期缓存
-      if (totalCacheSize.value + dataSize > cacheConfig.value.maxSize) {
-        cleanupExpiredCache()
-      }
-      
-      cacheData.value.set(key, data)
-      cacheTimestamps.value.set(key, Date.now())
-      cacheSizes.value.set(key, dataSize)
-      
-      // 持久化到本地存储
-      if (options.persist !== false) {
-        saveCacheToStorage(key, data)
-      }
-      
-      return true
+      // 使用分层缓存策略
+      const dataType = options.dataType || 'default'
+      return cacheStrategyStore.setCache(key, data, dataType, options)
     } catch (error) {
       console.error('设置缓存失败:', error)
       return false
@@ -104,30 +103,9 @@ export const useCacheStore = defineStore('cache', () => {
 
   const getCache = (key, options = {}) => {
     try {
-      // 检查缓存是否存在
-      if (!cacheData.value.has(key)) {
-        // 尝试从本地存储加载
-        if (options.loadFromStorage !== false) {
-          const data = loadCacheFromStorage(key)
-          if (data) {
-            cacheData.value.set(key, data)
-            cacheTimestamps.value.set(key, Date.now())
-            return data
-          }
-        }
-        return null
-      }
-      
-      // 检查是否过期
-      const timestamp = cacheTimestamps.value.get(key)
-      const now = Date.now()
-      
-      if (options.checkExpiry !== false && now - timestamp > cacheConfig.value.maxAge) {
-        removeCache(key)
-        return null
-      }
-      
-      return cacheData.value.get(key)
+      // 使用分层缓存策略
+      const dataType = options.dataType || 'default'
+      return cacheStrategyStore.getCache(key, dataType, options)
     } catch (error) {
       console.error('获取缓存失败:', error)
       return null
@@ -338,16 +316,21 @@ export const useCacheStore = defineStore('cache', () => {
   }
 
   const getCacheInfo = () => {
+    const strategyStats = cacheStrategyStore.getCacheStats()
     return {
-      totalSize: totalCacheSize.value,
-      keyCount: cacheData.value.size,
-      expiredCount: expiredKeys.value.length,
+      totalSize: cacheStrategyStore.totalCacheSize,
+      hitRate: cacheStrategyStore.cacheHitRate,
+      cacheInfo: cacheStrategyStore.cacheInfo,
       offlineDataCount: offlineData.value.size,
-      pendingSyncCount: pendingSyncCount.value
+      pendingSyncCount: pendingSyncCount.value,
+      ...strategyStats
     }
   }
 
   const initializeCache = () => {
+    // 初始化分层缓存策略
+    cacheStrategyStore.initializeCache()
+    
     loadOfflineQueueFromStorage()
     
     // 监听网络状态
@@ -358,6 +341,8 @@ export const useCacheStore = defineStore('cache', () => {
         syncOfflineData()
       }
     })
+    
+    console.log('🚀 优化缓存系统初始化完成')
   }
 
   return {

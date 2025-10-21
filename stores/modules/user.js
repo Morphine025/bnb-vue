@@ -7,14 +7,17 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { API } from '../../api'
+import { useLoadingStore } from './loading'
+import { useCacheStore } from './cache'
 
 export const useUserStore = defineStore('user', () => {
+  // 使用统一的loading管理
+  const loadingStore = useLoadingStore()
+  const cacheStore = useCacheStore()
+  
   // 用户基本信息
   const userInfo = ref(null)
   const isLoggedIn = computed(() => !!userInfo.value)
-  
-  // 请求去重机制
-  const pendingRequests = new Set()
   
   // 用户统计数据
   const userStats = ref({
@@ -67,12 +70,32 @@ export const useUserStore = defineStore('user', () => {
   
   // 获取用户信息
   const fetchUserInfo = async () => {
+    const requestKey = 'fetch-user-info'
+    if (!loadingStore.addPendingRequest(requestKey)) {
+      console.log('获取用户信息请求已在进行中')
+      return
+    }
+    
+    loadingStore.setLoading('user-info', true)
     try {
       setLoginStatus({ isLoggingIn: true, loginError: null })
+      
+      // 检查缓存
+      const cacheKey = 'user-info'
+      const cachedData = cacheStore.getCache(cacheKey, { dataType: 'user-info' })
+      if (cachedData) {
+        console.log('✅ 使用缓存的用户信息')
+        setUserInfo(cachedData)
+        return cachedData
+      }
       
       const response = await API.user.getInfo()
       if (response && response.code === 1) {
         setUserInfo(response.data)
+        
+        // 缓存用户信息
+        cacheStore.setCache(cacheKey, response.data, { dataType: 'user-info' })
+        
         return response.data
       } else {
         throw new Error(response?.msg || '获取用户信息失败')
@@ -83,11 +106,14 @@ export const useUserStore = defineStore('user', () => {
       throw error
     } finally {
       setLoginStatus({ isLoggingIn: false })
+      loadingStore.setLoading('user-info', false)
+      loadingStore.removePendingRequest(requestKey)
     }
   }
   
   // 更新用户信息
   const updateUser = async (data) => {
+    loadingStore.setLoading('update-user', true)
     try {
       const response = await API.user.updateInfo(data)
       if (response && response.code === 1) {
@@ -101,11 +127,14 @@ export const useUserStore = defineStore('user', () => {
     } catch (error) {
       console.error('更新用户信息失败:', error)
       throw error
+    } finally {
+      loadingStore.setLoading('update-user', false)
     }
   }
   
   // 获取用户统计
   const fetchUserStats = async () => {
+    loadingStore.setLoading('user-stats', true)
     try {
       const response = await API.user.getStats()
       if (response && response.code === 1) {
@@ -114,6 +143,8 @@ export const useUserStore = defineStore('user', () => {
       }
     } catch (error) {
       console.error('获取用户统计失败:', error)
+    } finally {
+      loadingStore.setLoading('user-stats', false)
     }
   }
   

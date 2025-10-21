@@ -8,17 +8,19 @@ import { defineStore } from 'pinia'
 import { ref, computed, shallowRef } from 'vue'
 import { API } from '../../api'
 import { processHomestayImages } from '../../utils/security/urlConverter'
+import { useLoadingStore } from './loading'
+import { useCacheStore } from './cache'
 
 export const useHomestayStore = defineStore('homestay', () => {
+  // 使用统一的loading管理
+  const loadingStore = useLoadingStore()
+  const cacheStore = useCacheStore()
+  
   // 民宿列表数据 - 使用ref确保响应性
   const homestayList = ref([])
   const currentPage = ref(1)
   const pageSize = ref(10)
   const hasMore = ref(true)
-  const isLoading = ref(false)
-  
-  // 请求去重机制
-  const pendingRequests = new Set()
 
   // 民宿详情数据
   const homestayDetail = ref(null)
@@ -146,7 +148,7 @@ export const useHomestayStore = defineStore('homestay', () => {
   }
 
   const setLoading = (loading) => {
-    isLoading.value = loading
+    loadingStore.setLoading('homestay-list', loading)
   }
 
   const setHomestayDetail = (detail) => {
@@ -212,30 +214,43 @@ export const useHomestayStore = defineStore('homestay', () => {
 
   const loadMoreHomestays = async () => {
     console.log('🚀 loadMoreHomestays 被调用')
-    console.log('   - isLoading:', isLoading.value)
+    console.log('   - isLoading:', loadingStore.isLoading('homestay-list'))
     console.log('   - hasMore:', hasMore.value)
     console.log('   - currentPage:', currentPage.value)
     console.log('   - homestayList.length:', homestayList.value.length)
     
-    if (isLoading.value || !hasMore.value) {
-      console.log('⚠️ 跳过加载: isLoading=', isLoading.value, ', hasMore=', hasMore.value)
+    if (loadingStore.isLoading('homestay-list') || !hasMore.value) {
+      console.log('⚠️ 跳过加载: isLoading=', loadingStore.isLoading('homestay-list'), ', hasMore=', hasMore.value)
       return
     }
     
     // 请求去重 - 防止重复请求
     const requestKey = `loadMore_${currentPage.value + 1}_${JSON.stringify(filterConditions.value)}`
-    if (pendingRequests.has(requestKey)) {
+    if (!loadingStore.addPendingRequest(requestKey)) {
       console.log('⚠️ 请求已在进行中，跳过重复请求')
       return
     }
     
-    pendingRequests.add(requestKey)
     setLoading(true)
     
     try {
       // 调用真实API获取数据 - 修复：如果是首次加载，请求第1页
       const pageToLoad = homestayList.value.length === 0 ? 1 : currentPage.value + 1
       console.log('📡 准备请求第', pageToLoad, '页数据')
+      
+      // 检查缓存
+      const cacheKey = `homestay-list-${pageToLoad}-${JSON.stringify(filterConditions.value)}`
+      const cachedData = cacheStore.getCache(cacheKey, { dataType: 'homestay-list' })
+      if (cachedData) {
+        console.log('✅ 使用缓存的民宿列表数据')
+        const newList = cachedData.list || []
+        if (newList.length > 0) {
+          appendHomestayList(newList)
+          setCurrentPage(pageToLoad)
+          setHasMore(cachedData.hasMore || false)
+        }
+        return
+      }
       
       const response = await API.homestay.getHomeList({
         page: pageToLoad,
@@ -266,6 +281,15 @@ export const useHomestayStore = defineStore('homestay', () => {
           } else {
             setCurrentPage(pageToLoad)
           }
+          
+          // 缓存数据
+          const cacheData = {
+            list: uniqueNewList,
+            hasMore: newList.length === pageSize.value,
+            page: pageToLoad,
+            filterConditions: filterConditions.value
+          }
+          cacheStore.setCache(cacheKey, cacheData, { dataType: 'homestay-list' })
         }
         
         setHasMore(newList.length === pageSize.value)
@@ -278,7 +302,7 @@ export const useHomestayStore = defineStore('homestay', () => {
       throw error
     } finally {
       setLoading(false)
-      pendingRequests.delete(requestKey)
+      loadingStore.removePendingRequest(requestKey)
     }
   }
 

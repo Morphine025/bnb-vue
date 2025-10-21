@@ -1,207 +1,147 @@
 /**
- * 用户信息管理Store
- * 功能描述：管理用户基本信息相关的状态和操作
- * 主要功能：用户信息、登录状态、认证等
+ * 用户信息管理Store（简化版）
+ * 功能描述：专注于用户信息相关的特定功能，避免与主user store重复
+ * 主要功能：用户资料编辑、头像上传、信息验证等
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { API } from '../../../api'
+import { useLoadingStore } from './loading'
 
 export const useUserProfileStore = defineStore('userProfile', () => {
-  // 用户基本信息
-  const userInfo = ref(null)
-  const isLoggedIn = computed(() => !!userInfo.value)
+  // 使用统一的loading管理
+  const loadingStore = useLoadingStore()
   
-  // 请求去重机制
-  const pendingRequests = new Set()
-  
-  // 登录状态
-  const loginStatus = ref({
-    isLoggingIn: false,
-    lastLoginTime: null,
-    loginError: null
+  // 用户资料编辑状态
+  const isEditing = ref(false)
+  const editForm = ref({
+    nickname: '',
+    avatar: '',
+    bio: '',
+    location: ''
   })
-
+  
+  // 头像上传状态
+  const isUploadingAvatar = computed(() => loadingStore.isLoading('upload-avatar'))
+  
+  // 资料验证状态
+  const validationErrors = ref({})
+  
   // Actions
-  const setUserInfo = (info) => {
-    console.log('🔄 Store setUserInfo 被调用，参数:', info)
-    userInfo.value = info
-    console.log('✅ Store userInfo 已更新:', userInfo.value)
-    
-    // 持久化到本地存储
-    if (info) {
-      uni.setStorageSync('userInfo', JSON.stringify(info))
-      console.log('✅ 用户信息已保存到本地存储')
-    } else {
-      uni.removeStorageSync('userInfo')
-      console.log('✅ 本地存储已清除')
-    }
+  const setEditing = (editing) => {
+    isEditing.value = editing
   }
   
-  const setLoginStatus = (status) => {
-    loginStatus.value = { ...loginStatus.value, ...status }
+  const setEditForm = (form) => {
+    editForm.value = { ...editForm.value, ...form }
+  }
+  
+  const clearEditForm = () => {
+    editForm.value = {
+      nickname: '',
+      avatar: '',
+      bio: '',
+      location: ''
+    }
+    validationErrors.value = {}
   }
 
-  // 获取用户信息
-  const fetchUserInfo = async () => {
+  // 验证用户资料
+  const validateProfile = (form) => {
+    const errors = {}
+    
+    if (!form.nickname || form.nickname.trim().length < 2) {
+      errors.nickname = '昵称至少需要2个字符'
+    }
+    
+    if (form.bio && form.bio.length > 200) {
+      errors.bio = '个人简介不能超过200个字符'
+    }
+    
+    validationErrors.value = errors
+    return Object.keys(errors).length === 0
+  }
+  
+  // 上传头像
+  const uploadAvatar = async (filePath) => {
+    loadingStore.setLoading('upload-avatar', true)
     try {
-      setLoginStatus({ isLoggingIn: true, loginError: null })
-      
-      const response = await API.user.getInfo()
-      console.log('🔍 fetchUserInfo API响应:', response)
-      
+      const response = await API.user.uploadAvatar(filePath)
       if (response && response.data) {
-        // 提取用户数据部分，而不是整个API响应
-        const userData = response.data
-        console.log('✅ 提取的用户数据:', userData)
-        setUserInfo(userData)
-        return userData
+        setEditForm({ avatar: response.data.url })
+        return response.data
       } else {
-        throw new Error('获取用户信息失败')
+        throw new Error('头像上传失败')
       }
     } catch (error) {
-      console.error('获取用户信息失败:', error)
-      setLoginStatus({ loginError: error.message })
+      console.error('头像上传失败:', error)
       throw error
     } finally {
-      setLoginStatus({ isLoggingIn: false })
+      loadingStore.setLoading('upload-avatar', false)
     }
   }
   
-  // 更新用户信息
-  const updateUser = async (data) => {
-    try {
-      const response = await API.user.updateInfo(data)
-      if (response) {
-        // 更新本地用户信息
-        const updatedInfo = { ...userInfo.value, ...data }
-        setUserInfo(updatedInfo)
-        return response
-      } else {
-        throw new Error('更新用户信息失败')
-      }
-    } catch (error) {
-      console.error('更新用户信息失败:', error)
-      throw error
+  // 保存用户资料
+  const saveProfile = async () => {
+    if (!validateProfile(editForm.value)) {
+      return false
     }
-  }
-  
-  // 登录
-  const performLogin = async (loginData) => {
-    try {
-      setLoginStatus({ isLoggingIn: true, loginError: null })
-      
-      // 调用服务层登录
-      const response = await API.user.login(
-        loginData.code, 
-        loginData.avatarUrl, 
-        loginData.nickName
-      )
-      
-      console.log('登录API响应:', response)
-      
-      // 处理后端返回的Result格式
-      if (response && response.code === 1 && response.data) {
-        const { token, userInfo } = response.data
-        
-        if (token) {
-          // 保存token
-          uni.setStorageSync('token', token)
-          console.log('Token已保存:', token)
-          
-          // 直接使用返回的用户信息，不需要再次请求
-          if (userInfo) {
-            setUserInfo(userInfo)
-            console.log('用户信息已设置:', userInfo)
-          }
-          
-          setLoginStatus({ 
-            isLoggingIn: false, 
-            lastLoginTime: new Date().toISOString() 
-          })
-          
-          return userInfo
-        } else {
-          throw new Error('登录响应中缺少token')
-        }
-      } else {
-        throw new Error(response?.message || '登录失败')
-      }
-    } catch (error) {
-      console.error('登录失败:', error)
-      setLoginStatus({ 
-        isLoggingIn: false, 
-        loginError: error.message 
-      })
-      throw error
-    }
-  }
-  
-  // 登出
-  const logout = () => {
-    setUserInfo(null)
-    setLoginStatus({
-      isLoggingIn: false,
-      lastLoginTime: null,
-      loginError: null
-    })
     
-    // 清除本地存储
-    uni.removeStorageSync('token')
-    uni.removeStorageSync('userInfo')
+    loadingStore.setLoading('save-profile', true)
+    try {
+      const response = await API.user.updateProfile(editForm.value)
+      if (response && response.data) {
+        // 清除编辑状态
+        setEditing(false)
+        clearEditForm()
+        return response.data
+      } else {
+        throw new Error('保存资料失败')
+      }
+    } catch (error) {
+      console.error('保存资料失败:', error)
+      throw error
+    } finally {
+      loadingStore.setLoading('save-profile', false)
+    }
   }
   
-  // 初始化用户数据
-  const initializeUser = async () => {
-    try {
-      // 从本地存储恢复用户信息
-      const localUserInfo = uni.getStorageSync('userInfo')
-      if (localUserInfo) {
-        const user = JSON.parse(localUserInfo)
-        setUserInfo(user)
-      }
-      
-      // 如果已登录，获取最新用户信息
-      if (isLoggedIn.value) {
-        await fetchUserInfo()
-      }
-    } catch (error) {
-      console.error('初始化用户数据失败:', error)
-    }
+  // 取消编辑
+  const cancelEdit = () => {
+    setEditing(false)
+    clearEditForm()
   }
-
-  // 获取其他用户信息
-  const fetchUserInfoById = async (userId) => {
-    try {
-      const response = await API.user.getInfoById(userId)
-      if (response) {
-        return response
-      } else {
-        throw new Error('获取用户信息失败')
-      }
-    } catch (error) {
-      console.error('获取用户信息失败:', error)
-      throw error
-    }
+  
+  // 开始编辑
+  const startEdit = (userInfo) => {
+    setEditing(true)
+    setEditForm({
+      nickname: userInfo.nickname || '',
+      avatar: userInfo.avatar || '',
+      bio: userInfo.bio || '',
+      location: userInfo.location || ''
+    })
   }
 
   return {
     // State
-    userInfo,
-    loginStatus,
+    isEditing,
+    editForm,
+    validationErrors,
     
     // Computed
-    isLoggedIn,
+    isUploadingAvatar,
     
     // Actions
-    setUserInfo,
-    setLoginStatus,
-    fetchUserInfo,
-    updateUser,
-    performLogin,
-    logout,
-    initializeUser,
-    fetchUserInfoById
+    setEditing,
+    setEditForm,
+    clearEditForm,
+    validateProfile,
+    uploadAvatar,
+    saveProfile,
+    cancelEdit,
+    startEdit
   }
 })
+
