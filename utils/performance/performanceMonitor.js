@@ -1,229 +1,105 @@
 /**
- * 性能监控工具
- * 功能描述：监控应用性能指标
- * 主要功能：性能指标收集、性能分析、性能报告
+ * 简化性能监控工具
+ * 功能描述：提供轻量级的性能监控功能
+ * 主要功能：基础性能计时、简单统计
  */
 
-class PerformanceMonitor {
-  constructor() {
-    this.metrics = new Map()
-    this.observers = new Map()
-    this.isEnabled = true
-  }
+// 性能计时器存储
+const timers = new Map()
+const metrics = new Map()
+
+/**
+ * 开始性能计时
+ * @param {string} name - 计时器名称
+ * @returns {object} 计时器对象
+ * @example
+ * // 开始计时
+ * const timer = startTimer('api_call')
+ * // 结束计时
+ * const duration = endTimer('api_call')
+ */
+export const startTimer = (name) => {
+  const startTime = Date.now()
+  timers.set(name, startTime)
   
-  /**
-   * 开始性能监控
-   * @param {string} name - 监控名称
-   * @param {object} metadata - 元数据
-   * @returns {object} 监控对象
-   */
-  start(name, metadata = {}) {
-    if (!this.isEnabled) return null
-    
-    const startTime = performance.now()
-    const startMemory = this.getMemoryUsage()
-    
-    return {
-      name,
-      startTime,
-      startMemory,
-      metadata,
-      end: () => this.end(name, startTime, startMemory, metadata)
-    }
-  }
-  
-  /**
-   * 结束性能监控
-   * @param {string} name - 监控名称
-   * @param {number} startTime - 开始时间
-   * @param {number} startMemory - 开始内存
-   * @param {object} metadata - 元数据
-   */
-  end(name, startTime, startMemory, metadata = {}) {
-    if (!this.isEnabled) return
-    
-    const endTime = performance.now()
-    const endMemory = this.getMemoryUsage()
-    
-    const metric = {
-      name,
-      duration: endTime - startTime,
-      memoryDelta: endMemory - startMemory,
-      startTime,
-      endTime,
-      startMemory,
-      endMemory,
-      metadata,
-      timestamp: Date.now()
-    }
-    
-    this.metrics.set(name, metric)
-    this.notifyObservers(name, metric)
-  }
-  
-  /**
-   * 获取内存使用情况
-   * @returns {number} 内存使用量（字节）
-   */
-  getMemoryUsage() {
-    if (performance.memory) {
-      return performance.memory.usedJSHeapSize
-    }
-    return 0
-  }
-  
-  /**
-   * 获取性能指标
-   * @param {string} name - 指标名称
-   * @returns {object|null} 性能指标
-   */
-  getMetric(name) {
-    return this.metrics.get(name) || null
-  }
-  
-  /**
-   * 获取所有性能指标
-   * @returns {Array} 所有性能指标
-   */
-  getAllMetrics() {
-    return Array.from(this.metrics.values())
-  }
-  
-  /**
-   * 获取性能统计
-   * @returns {object} 性能统计
-   */
-  getStats() {
-    const metrics = this.getAllMetrics()
-    
-    if (metrics.length === 0) {
-      return {
-        totalMetrics: 0,
-        averageDuration: 0,
-        totalMemoryDelta: 0,
-        slowestOperation: null,
-        fastestOperation: null
-      }
-    }
-    
-    const durations = metrics.map(m => m.duration)
-    const memoryDeltas = metrics.map(m => m.memoryDelta)
-    
-    const slowest = metrics.reduce((prev, current) => 
-      prev.duration > current.duration ? prev : current
-    )
-    
-    const fastest = metrics.reduce((prev, current) => 
-      prev.duration < current.duration ? prev : current
-    )
-    
-    return {
-      totalMetrics: metrics.length,
-      averageDuration: durations.reduce((a, b) => a + b, 0) / durations.length,
-      totalMemoryDelta: memoryDeltas.reduce((a, b) => a + b, 0),
-      slowestOperation: slowest,
-      fastestOperation: fastest,
-      memoryUsage: this.getMemoryUsage()
-    }
-  }
-  
-  /**
-   * 添加观察者
-   * @param {string} name - 监控名称
-   * @param {Function} callback - 回调函数
-   */
-  addObserver(name, callback) {
-    if (!this.observers.has(name)) {
-      this.observers.set(name, [])
-    }
-    this.observers.get(name).push(callback)
-  }
-  
-  /**
-   * 移除观察者
-   * @param {string} name - 监控名称
-   * @param {Function} callback - 回调函数
-   */
-  removeObserver(name, callback) {
-    const observers = this.observers.get(name)
-    if (observers) {
-      const index = observers.indexOf(callback)
-      if (index > -1) {
-        observers.splice(index, 1)
-      }
-    }
-  }
-  
-  /**
-   * 通知观察者
-   * @param {string} name - 监控名称
-   * @param {object} metric - 性能指标
-   */
-  notifyObservers(name, metric) {
-    const observers = this.observers.get(name)
-    if (observers) {
-      observers.forEach(callback => {
-        try {
-          callback(metric)
-        } catch (error) {
-          console.error('性能监控观察者回调错误:', error)
-        }
-      })
-    }
-  }
-  
-  /**
-   * 清空所有指标
-   */
-  clear() {
-    this.metrics.clear()
-  }
-  
-  /**
-   * 启用/禁用监控
-   * @param {boolean} enabled - 是否启用
-   */
-  setEnabled(enabled) {
-    this.isEnabled = enabled
-  }
-  
-  /**
-   * 导出性能报告
-   * @returns {object} 性能报告
-   */
-  exportReport() {
-    return {
-      timestamp: Date.now(),
-      stats: this.getStats(),
-      metrics: this.getAllMetrics(),
-      memoryUsage: this.getMemoryUsage()
-    }
+  return {
+    name,
+    startTime,
+    end: () => endTimer(name)
   }
 }
 
-// 创建全局性能监控实例
-const performanceMonitor = new PerformanceMonitor()
+/**
+ * 结束性能计时
+ * @param {string} name - 计时器名称
+ * @returns {number} 执行时间（毫秒）
+ */
+export const endTimer = (name) => {
+  const startTime = timers.get(name)
+  if (!startTime) {
+    console.warn(`计时器 ${name} 不存在`)
+    return 0
+  }
+  
+  const duration = Date.now() - startTime
+  timers.delete(name)
+  
+  // 记录性能指标
+  recordMetric(name, duration)
+  
+  // 开发环境下输出日志
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`⏱️ ${name}: ${duration}ms`)
+  }
+  
+  return duration
+}
+
+/**
+ * 记录性能指标
+ * @param {string} name - 指标名称
+ * @param {number} duration - 执行时间
+ */
+const recordMetric = (name, duration) => {
+  if (!metrics.has(name)) {
+    metrics.set(name, [])
+  }
+  
+  const metricList = metrics.get(name)
+  metricList.push({
+    duration,
+    timestamp: Date.now()
+  })
+  
+  // 只保留最近10次记录
+  if (metricList.length > 10) {
+    metricList.shift()
+  }
+}
 
 /**
  * 性能监控装饰器
  * @param {string} name - 监控名称
- * @param {object} metadata - 元数据
  * @returns {Function} 装饰器函数
+ * @example
+ * // 使用装饰器
+ * @measurePerformance('api_call')
+ * async function apiCall() {
+ *   // API调用逻辑
+ * }
  */
-export function performanceDecorator(name, metadata = {}) {
+export const measurePerformance = (name) => {
   return function(target, propertyKey, descriptor) {
     const originalMethod = descriptor.value
     
     descriptor.value = async function(...args) {
-      const monitor = performanceMonitor.start(name, metadata)
+      const timer = startTimer(name)
       
       try {
         const result = await originalMethod.apply(this, args)
         return result
       } finally {
-        if (monitor) {
-          monitor.end()
-        }
+        timer.end()
       }
     }
     
@@ -236,39 +112,95 @@ export function performanceDecorator(name, metadata = {}) {
  */
 export const performanceUtils = {
   /**
-   * 开始监控
+   * 开始计时
+   * @param {string} name - 计时器名称
+   * @returns {object} 计时器对象
    */
-  start: (name, metadata) => performanceMonitor.start(name, metadata),
+  start: startTimer,
   
   /**
-   * 获取指标
+   * 结束计时
+   * @param {string} name - 计时器名称
+   * @returns {number} 执行时间
    */
-  getMetric: (name) => performanceMonitor.getMetric(name),
+  end: endTimer,
   
   /**
-   * 获取统计
+   * 获取性能指标
+   * @param {string} name - 指标名称
+   * @returns {Array} 性能指标数组
    */
-  getStats: () => performanceMonitor.getStats(),
+  getMetrics: (name) => {
+    return metrics.get(name) || []
+  },
   
   /**
-   * 添加观察者
+   * 获取性能统计
+   * @param {string} name - 指标名称
+   * @returns {object} 统计信息
    */
-  addObserver: (name, callback) => performanceMonitor.addObserver(name, callback),
+  getStats: (name) => {
+    const metricList = metrics.get(name) || []
+    
+    if (metricList.length === 0) {
+      return {
+        count: 0,
+        average: 0,
+        min: 0,
+        max: 0
+      }
+    }
+    
+    const durations = metricList.map(m => m.duration)
+    const total = durations.reduce((sum, duration) => sum + duration, 0)
+    
+    return {
+      count: metricList.length,
+      average: Math.round(total / metricList.length),
+      min: Math.min(...durations),
+      max: Math.max(...durations),
+      latest: durations[durations.length - 1]
+    }
+  },
   
   /**
-   * 导出报告
+   * 清空所有指标
    */
-  exportReport: () => performanceMonitor.exportReport(),
+  clear: () => {
+    metrics.clear()
+    timers.clear()
+  },
   
   /**
-   * 清空指标
+   * 获取所有指标名称
+   * @returns {Array} 指标名称数组
    */
-  clear: () => performanceMonitor.clear(),
-  
-  /**
-   * 设置启用状态
-   */
-  setEnabled: (enabled) => performanceMonitor.setEnabled(enabled)
+  getMetricNames: () => {
+    return Array.from(metrics.keys())
+  }
 }
 
-export default performanceMonitor
+/**
+ * 简单的性能监控函数
+ * @param {string} name - 监控名称
+ * @param {Function} fn - 要监控的函数
+ * @returns {Promise} 函数执行结果
+ * @example
+ * // 监控异步函数
+ * const result = await measure('api_call', async () => {
+ *   return await api.getData()
+ * })
+ */
+export const measure = async (name, fn) => {
+  const timer = startTimer(name)
+  
+  try {
+    const result = await fn()
+    return result
+  } finally {
+    timer.end()
+  }
+}
+
+// 默认导出简化的性能工具
+export default performanceUtils
