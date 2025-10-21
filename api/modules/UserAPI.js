@@ -265,6 +265,3 @@ export class UserAPI {
 }
 
 // 注意：现在直接使用UserAPI类的静态方法，不需要导出便捷方法
-
-// 导出类
-export default UserAPI

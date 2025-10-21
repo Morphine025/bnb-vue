@@ -7,6 +7,8 @@
 // ==================== 安全相关工具 ====================
 export * from './security/inputSanitizer'
 export * from './security/dataValidator'
+export * from './security/urlConverter'
+export * from './security/environmentDetector'
 
 // ==================== 性能相关工具 ====================
 export * from './performance/performanceMonitor'
@@ -14,7 +16,6 @@ export * from './performance/debounce'
 
 // ==================== API相关工具 ====================
 export * from './api/apiUtils'
-export * from './api/errorHandler'
 
 // ==================== 缓存相关工具 ====================
 export * from './cache/cacheManager'
@@ -34,22 +35,17 @@ export * from './debug/debugHelper'
 // ==================== 常量定义 ====================
 export * from './constants/constants'
 
-// ==================== 分类导出（可选） ====================
-// 如果需要按功能分组使用，可以使用以下方式：
-// import { securityUtils } from '@/utils'
-// import { performanceUtils } from '@/utils'
-
 /**
  * 工具函数使用示例：
  * 
  * // 安全相关
- * import { sanitizeInput, validatePhone } from '@/utils'
+ * import { sanitizeInput, validatePhone, validate } from '@/utils'
  * 
  * // 性能相关
  * import { debounce, performanceUtils } from '@/utils'
  * 
  * // API相关
- * import { handleError, generateRequestId } from '@/utils'
+ * import { handleError, generateRequestId, showSuccess } from '@/utils'
  * 
  * // 缓存相关
  * import { cacheUtils } from '@/utils'

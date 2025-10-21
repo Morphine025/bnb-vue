@@ -7,6 +7,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { API } from '../../../api'
+import { processHomestayImages } from '../../../utils/security/urlConverter'
 
 export const useHomestayListStore = defineStore('homestayList', () => {
   // 民宿列表数据
@@ -22,18 +23,23 @@ export const useHomestayListStore = defineStore('homestayList', () => {
   // 数据映射缓存 - 使用computed缓存映射结果，避免重复计算
   const processedHomestayList = computed(() => {
     console.log('🔄 processedHomestayList 计算中，原始数据长度:', homestayList.value.length)
-    const processed = homestayList.value.map((item, index) => ({
-      ...item,
-      id: item.homestayId || item.id || `item_${index}`,
-      img: item.images && item.images.length > 0 
-        ? item.images[0] 
-        : `https://picsum.photos/400/300?random=${index}`,
-      likes: item.likeCount || 0,
-      supports: item.viewCount || 0,
-      avatar: item.avatar || '/static/logo.png',
-      userId: item.userId || item.authorId || null,
-      stats: item.stats || null
-    }))
+    const processed = homestayList.value.map((item, index) => {
+      // 处理图片URL，确保使用HTTPS
+      const processedItem = processHomestayImages(item)
+      
+      return {
+        ...processedItem,
+        id: processedItem.homestayId || processedItem.id || `item_${index}`,
+        img: processedItem.images && processedItem.images.length > 0 
+          ? processedItem.images[0] 
+          : `https://picsum.photos/400/300?random=${index}`,
+        likes: processedItem.likeCount || 0,
+        supports: processedItem.viewCount || 0,
+        avatar: processedItem.avatar || '/static/logo.png',
+        userId: processedItem.userId || processedItem.authorId || null,
+        stats: processedItem.stats || null
+      }
+    })
     console.log('✅ processedHomestayList 处理完成，处理后数据长度:', processed.length)
     return processed
   })

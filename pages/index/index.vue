@@ -510,7 +510,17 @@ const loadMore = async () => {
 // 图片错误处理
 const handleImageError = (errorData) => {
 	console.log('图片加载失败:', errorData)
-	// 实现图片错误处理逻辑
+	
+	// 如果是SSL协议错误，尝试降级到HTTP（仅限本地开发环境）
+	if (errorData && errorData.target && errorData.target.src) {
+		const currentSrc = errorData.target.src
+		if (currentSrc.includes('https://localhost:8081')) {
+			const httpSrc = currentSrc.replace('https://', 'http://')
+			console.log('尝试降级到HTTP协议:', httpSrc)
+			// 更新图片源
+			errorData.target.src = httpSrc
+		}
+	}
 }
 
 // 跳转到详情页

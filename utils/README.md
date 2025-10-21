@@ -2,7 +2,15 @@
 
 ## 概述
 
-本项目在 `utils/` 目录下提供了丰富的工具函数，涵盖了API处理、缓存管理、错误处理、数据验证、性能监控等多个方面。所有工具函数都经过精心设计，提供了统一的接口和良好的错误处理机制。
+本项目在 `utils/` 目录下提供了精简高效的工具函数，涵盖了API处理、缓存管理、数据验证、性能监控等核心功能。所有工具函数都经过简化设计，避免过度复杂，提供简洁的接口和良好的性能表现。
+
+## 重构说明
+
+本次重构主要解决了以下问题：
+- **简化过度设计**：移除了复杂的LRU缓存策略、性能统计功能等
+- **合并重复代码**：统一了验证逻辑、错误处理机制
+- **减少代码冗余**：合并了相似功能的模块
+- **提升可维护性**：简化了API接口，降低了学习成本
 
 ## 目录结构
 
@@ -15,8 +23,7 @@ utils/
 │   ├── performanceMonitor.js # 性能监控工具
 │   └── debounce.js         # 防抖节流工具
 ├── api/                    # API相关工具
-│   ├── apiUtils.js         # API工具函数
-│   └── errorHandler.js     # 统一错误处理
+│   └── apiUtils.js         # 统一错误处理工具
 ├── cache/                  # 缓存相关工具
 │   └── cacheManager.js     # 缓存管理器
 ├── ui/                     # UI相关工具
@@ -36,7 +43,115 @@ utils/
 
 ## 工具函数分类
 
-### 1. 安全相关工具 (security/)
+### 1. 性能相关工具 (performance/)
+
+#### performanceMonitor.js
+- **功能**: 提供简化的性能监控功能
+- **主要方法**:
+  - `startTimer()`: 开始计时
+  - `endTimer(startTime)`: 结束计时
+  - `measure(name, fn)`: 监控函数执行时间
+- **使用示例**:
+```javascript
+import { startTimer, endTimer, measure } from '@/utils/performance/performanceMonitor'
+
+// 基础计时
+const startTime = startTimer()
+// ... 执行操作
+const duration = endTimer(startTime)
+
+// 监控函数执行
+const result = await measure('api_call', async () => {
+  return await api.getData()
+})
+```
+
+#### debounce.js
+- **功能**: 提供防抖和节流功能
+- **主要方法**:
+  - `debounce(func, wait)`: 防抖函数
+  - `throttle(func, wait)`: 节流函数
+
+### 2. 缓存相关工具 (cache/)
+
+#### cacheManager.js
+- **功能**: 提供简化的缓存管理
+- **主要方法**:
+  - `setCache(key, value, ttl)`: 设置缓存
+  - `getCache(key)`: 获取缓存
+  - `hasCache(key)`: 检查缓存是否存在
+  - `deleteCache(key)`: 删除缓存
+  - `clearCache()`: 清空所有缓存
+  - `withCache(ttl)`: 缓存装饰器
+- **使用示例**:
+```javascript
+import { setCache, getCache, withCache } from '@/utils/cache/cacheManager'
+
+// 基础缓存操作
+setCache('user_info', userData, 5 * 60 * 1000)
+const userData = getCache('user_info')
+
+// 使用缓存装饰器
+const cachedApiCall = withCache(5 * 60 * 1000)(apiCall)
+```
+
+### 3. API相关工具 (api/)
+
+#### apiUtils.js
+- **功能**: 提供统一的错误处理工具
+- **主要方法**:
+  - `generateRequestId()`: 生成请求ID
+  - `handleError(error, context, options)`: 统一错误处理
+  - `showSuccess(message)`: 显示成功提示
+  - `showError(message)`: 显示错误提示
+- **使用示例**:
+```javascript
+import { generateRequestId, handleError, showSuccess } from '@/utils/api/apiUtils'
+
+const requestId = generateRequestId()
+try {
+  // API调用
+  showSuccess('操作成功')
+} catch (error) {
+  handleError(error, 'API调用失败')
+}
+```
+
+### 4. 业务相关工具 (business/)
+
+#### homestayStatus.js
+- **功能**: 提供简化状态管理功能
+- **主要方法**:
+  - `createSimpleStatusManager(statusMap)`: 创建状态管理器
+  - `getStatusText(status)`: 获取状态文本
+  - `getStatusColor(status)`: 获取状态颜色
+- **使用示例**:
+```javascript
+import { createSimpleStatusManager, homestayStatusMap } from '@/utils/business/homestayStatus'
+
+const statusManager = createSimpleStatusManager(homestayStatusMap)
+const text = statusManager.getStatusText('0') // '审核中'
+const color = statusManager.getStatusColor('0') // '#faad14'
+```
+
+#### userInfo.js
+- **功能**: 提供简化用户信息管理
+- **主要方法**:
+  - `createSimpleUserInfoManager(apiClient, storageKey)`: 创建用户信息管理器
+  - `refreshUserInfo()`: 刷新用户信息
+  - `getLocalUserInfo()`: 获取本地用户信息
+- **使用示例**:
+```javascript
+import { createSimpleUserInfoManager } from '@/utils/business/userInfo'
+
+const userInfoManager = createSimpleUserInfoManager({
+  getInfo: UserAPI.getInfo,
+  updateInfo: UserAPI.updateInfo
+}, 'userInfo')
+const userInfo = await userInfoManager.refreshUserInfo()
+```
+
+### 5. 安全相关工具 (security/)
 
 #### inputSanitizer.js
 - **功能**: 提供输入数据的清理和安全验证
@@ -49,23 +164,25 @@ utils/
 - **特点**: XSS防护、输入清理、数据验证
 
 #### dataValidator.js
-- **功能**: 提供数据验证和清洗功能
+- **功能**: 提供统一的数据验证功能
 - **主要方法**:
-  - `validateFollowListData()`: 验证关注列表数据
-  - `validateApiResponse()`: 验证API响应格式
-  - `sanitizeUserInput()`: 清洗用户输入数据
-  - `validatePaginationParams()`: 验证分页参数
-- **特点**: API数据验证、数据清洗、类型检查
+  - `validate(data, rules)`: 通用验证函数
+  - `validateApiResponse(response)`: 验证API响应
+  - `validatePagination(params)`: 验证分页参数
+  - `validatePhone(phone)`: 验证手机号
+  - `validateEmail(email)`: 验证邮箱
+  - `sanitizeInput(input)`: 清洗用户输入
+- **特点**: 统一验证逻辑、减少重复代码
 
 ### 2. 性能相关工具 (performance/)
 
 #### performanceMonitor.js
-- **功能**: 监控应用性能指标
+- **功能**: 轻量级性能监控工具
 - **主要特性**:
-  - 性能指标收集
-  - 内存使用监控
-  - 性能报告生成
-  - 观察者模式
+  - 基础性能计时
+  - 简单统计信息
+  - 装饰器支持
+  - 开发环境日志
 
 #### debounce.js
 - **功能**: 提供防抖和节流功能
@@ -95,21 +212,23 @@ utils/
 ### 2. 缓存管理
 
 #### cacheManager.js
-- **功能**: 提供统一的数据缓存管理
+- **功能**: 轻量级数据缓存管理
 - **主要特性**:
-  - 内存缓存机制
-  - TTL（生存时间）管理
-  - LRU缓存策略
-  - 缓存统计信息
+  - 基础内存缓存
+  - 简单过期策略
+  - 缓存装饰器
+  - 统计信息
 - **使用示例**:
 ```javascript
-import { cacheUtils } from '@/utils/cacheManager'
+import { cacheUtils, withCache } from '@/utils'
 
-// 设置缓存
+// 基础缓存操作
 cacheUtils.set('user_data', userData, 60000) // 缓存1分钟
-
-// 获取缓存
 const userData = cacheUtils.get('user_data')
+
+// 缓存装饰器
+const cachedApiCall = withCache(5 * 60 * 1000)(apiCall)
+const result = await cachedApiCall(params)
 
 // 检查缓存
 if (cacheUtils.has('user_data')) {
@@ -239,6 +358,25 @@ hideLoading()
 
 ### 6. 业务工具函数
 
+#### homestayStatus.js
+- **功能**: 简化状态管理工具
+- **主要方法**:
+  - `createSimpleStatusManager()`: 创建状态管理器
+  - `getStatusText()`: 获取状态文本
+  - `getStatusColor()`: 获取状态颜色
+  - `isValidStatus()`: 验证状态是否有效
+- **使用示例**:
+```javascript
+import { createSimpleStatusManager, homestayStatusManager } from '@/utils'
+
+// 使用默认民宿状态管理器
+const statusText = homestayStatusManager.getStatusText('0')
+const color = homestayStatusManager.getStatusColor('0')
+
+// 创建自定义状态管理器
+const customStatusManager = createSimpleStatusManager(customStatusMap)
+```
+
 #### priceFormatter.js
 - **功能**: 价格格式化工具
 - **主要方法**:
@@ -272,20 +410,25 @@ await showShareOptions(homestayItem)
 ```
 
 #### userInfo.js
-- **功能**: 用户信息管理工具
+- **功能**: 通用用户信息管理工具
 - **主要方法**:
+  - `createSimpleUserInfoManager()`: 创建用户信息管理器
   - `refreshUserInfo()`: 刷新用户信息
   - `getLocalUserInfo()`: 获取本地用户信息
-  - `updateLocalUserInfo()`: 更新本地用户信息
+  - `updateUserInfo()`: 更新用户信息
 - **使用示例**:
 ```javascript
-import { refreshUserInfo, getLocalUserInfo } from '@/utils/userInfo'
+import { createSimpleUserInfoManager, refreshUserInfo, getLocalUserInfo } from '@/utils'
 
-// 刷新用户信息
+// 创建自定义用户信息管理器
+const customUserManager = createSimpleUserInfoManager(apiClient, 'customUserInfo')
+
+// 使用默认管理器
 const userInfo = await refreshUserInfo()
-
-// 获取本地用户信息
 const localUserInfo = await getLocalUserInfo()
+
+// 使用自定义管理器
+const customUserInfo = await customUserManager.refreshUserInfo()
 ```
 
 ### 7. 常量定义
@@ -311,20 +454,20 @@ const delay = DEBOUNCE_DELAY.SEARCH
 
 ## 最佳实践
 
-### 1. 错误处理
-- 使用 `errorHandler.js` 统一处理错误
-- 为不同类型的错误提供合适的用户提示
-- 记录错误日志便于调试
+### 1. 性能优化
+- 使用轻量级性能监控，避免过度设计
+- 合理使用缓存，设置合适的TTL
+- 使用防抖和节流优化用户交互
 
 ### 2. 缓存策略
 - 根据数据特性设置合适的TTL
 - 使用缓存装饰器简化API缓存
 - 定期清理过期缓存
 
-### 3. 性能优化
-- 使用防抖和节流优化用户交互
-- 监控关键操作的性能指标
-- 避免不必要的重复计算
+### 3. 状态管理
+- 使用简化的状态管理器，避免业务耦合
+- 保持状态映射简单明了
+- 减少不必要的复杂逻辑
 
 ### 4. 数据安全
 - 对所有用户输入进行清理和验证
@@ -334,36 +477,44 @@ const delay = DEBOUNCE_DELAY.SEARCH
 ### 5. 代码组织
 - 按功能分类组织工具函数
 - 提供清晰的文档和示例
-- 保持函数职责单一
+- 保持函数职责单一，避免过度设计
 
 ## 调试技巧
 
 ### 1. 性能监控
 ```javascript
-import { performanceUtils } from '@/utils/performanceMonitor'
+import { startTimer, endTimer, measure } from '@/utils/performance/performanceMonitor'
 
-// 添加性能观察者
-performanceUtils.addObserver('api_call', (metric) => {
-  console.log('API调用耗时:', metric.duration)
+// 基础计时
+const timer = startTimer('api_call')
+// ... 执行操作
+const duration = endTimer('api_call')
+
+// 监控函数执行
+const result = await measure('api_call', async () => {
+  return await api.getData()
 })
 ```
 
 ### 2. 缓存调试
 ```javascript
-import { cacheUtils } from '@/utils/cacheManager'
+import { setCache, getCache, withCache } from '@/utils/cache/cacheManager'
 
-// 获取缓存统计
-const stats = cacheUtils.getStats()
-console.log('缓存统计:', stats)
+// 基础缓存操作
+setCache('user_info', userData, 5 * 60 * 1000)
+const userData = getCache('user_info')
+
+// 使用缓存装饰器
+const cachedFunction = withCache(5 * 60 * 1000)(originalFunction)
 ```
 
-### 3. 错误调试
+### 3. 状态管理调试
 ```javascript
-import { errorHandler } from '@/utils/errorHandler'
+import { createSimpleStatusManager, homestayStatusMap } from '@/utils/business/homestayStatus'
 
-// 获取错误日志
-const errorLog = errorHandler.getErrorLog()
-console.log('错误日志:', errorLog)
+const statusManager = createSimpleStatusManager(homestayStatusMap)
+const text = statusManager.getStatusText('0')
+const color = statusManager.getStatusColor('0')
 ```
 
 ## 常见问题

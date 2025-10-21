@@ -69,12 +69,31 @@ export const useAppStore = defineStore('app', () => {
             ...appBaseInfo
           }
         } else {
-          // 降级使用旧API
-          systemInfo = uni.getSystemInfoSync()
+          // 使用 uni-app 的 getSystemInfo 异步API
+          try {
+            const systemInfoRes = await uni.getSystemInfo()
+            systemInfo = systemInfoRes
+          } catch (syncError) {
+            console.warn('获取系统信息失败，使用默认值:', syncError)
+            systemInfo = {
+              statusBarHeight: 0,
+              windowWidth: 375,
+              windowHeight: 667,
+              platform: 'unknown',
+              system: 'unknown'
+            }
+          }
         }
       } catch (e) {
-        // 如果新API不可用，使用旧API
-        systemInfo = uni.getSystemInfoSync()
+        console.warn('获取系统信息失败，使用默认值:', e)
+        // 提供默认的系统信息
+        systemInfo = {
+          statusBarHeight: 0,
+          windowWidth: 375,
+          windowHeight: 667,
+          platform: 'unknown',
+          system: 'unknown'
+        }
       }
       
       globalUI.value.systemInfo = systemInfo
