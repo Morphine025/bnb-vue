@@ -6,6 +6,8 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { handleError as globalHandleError } from '../../utils/error/errorHandler.js'
+import { ErrorTypes, ErrorLevels } from '../../utils/error/errorTypes.js'
 
 export const useUIStore = defineStore('ui', () => {
   // 全局加载状态
@@ -115,6 +117,29 @@ export const useUIStore = defineStore('ui', () => {
 
   const showError = (message, title = '错误', actions = []) => {
     setGlobalError({ message }, title, actions)
+  }
+
+  /**
+   * 处理UI错误
+   * @param {Error|Object} error - 错误对象
+   * @param {Object} options - 处理选项
+   * @param {Object} context - 上下文信息
+   */
+  const handleUIError = (error, options = {}, context = {}) => {
+    const uiContext = {
+      module: 'UI',
+      layer: 'Store',
+      ...context
+    }
+    
+    const result = globalHandleError(error, options, uiContext)
+    
+    // 如果错误处理成功，更新UI状态
+    if (result.handled) {
+      setGlobalError(error, result.errorInfo?.type || '错误')
+    }
+    
+    return result
   }
 
   const hideError = () => {
@@ -358,6 +383,7 @@ export const useUIStore = defineStore('ui', () => {
     initializeUI,
     resetUI,
     showConfirm,
-    showAlert
+    showAlert,
+    handleUIError
   }
 })

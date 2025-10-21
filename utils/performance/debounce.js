@@ -34,7 +34,6 @@
  */
 export function debounce(func, wait, options = {}) {
   let timeoutId
-  let lastCallTime
   let lastInvokeTime = 0
   let leading = false
   let maxWait = false
@@ -383,6 +382,40 @@ export function smartThrottle(func, type) {
   return throttle(func, strategy.wait, strategy.options)
 }
 
+/**
+ * 创建防抖保存函数
+ * @description 专门用于创建防抖的保存函数，常用于表单自动保存
+ * @param {Function} saveFunction - 保存函数
+ * @param {number} wait - 延迟时间（毫秒）
+ * @param {Object} options - 配置选项
+ * @returns {Function} 防抖保存函数
+ * 
+ * @example
+ * ```javascript
+ * const debouncedSave = createDebouncedSave(async () => {
+ *   await saveUserData(formData)
+ * }, 1000)
+ * 
+ * // 使用
+ * debouncedSave()
+ * ```
+ */
+export function createDebouncedSave(saveFunction, wait = 1000, options = {}) {
+  if (typeof saveFunction !== 'function') {
+    throw new TypeError('Expected a function')
+  }
+  
+  const defaultOptions = {
+    leading: false,
+    trailing: true,
+    maxWait: wait * 2
+  }
+  
+  const mergedOptions = { ...defaultOptions, ...options }
+  
+  return debounce(saveFunction, wait, mergedOptions)
+}
+
 export default {
   debounce,
   throttle,
@@ -391,5 +424,6 @@ export default {
   batchDebounce,
   batchThrottle,
   smartDebounce,
-  smartThrottle
+  smartThrottle,
+  createDebouncedSave
 }

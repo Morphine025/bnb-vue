@@ -24,6 +24,7 @@ export * from './cache/cacheManager'
 // ==================== UI相关工具 ====================
 export * from './ui/loadingManager'
 export * from './ui/shareUtils'
+export * from './ui/imageErrorHandler'
 
 // ==================== 业务相关工具 ====================
 export * from './business/homestayStatus'

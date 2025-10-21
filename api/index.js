@@ -31,6 +31,37 @@ import { config } from './config'
 export { default as http } from './http'
 
 /**
+ * 图片上传功能
+ */
+const uploadImage = (filePath) => {
+  return new Promise((resolve, reject) => {
+    uni.uploadFile({
+      url: config.uploadUrl,
+      filePath: filePath,
+      name: 'file',
+      header: {
+        'Authorization': `Bearer ${uni.getStorageSync('token')}`
+      },
+      success: (res) => {
+        try {
+          const data = JSON.parse(res.data)
+          if (data.code === 1) {
+            resolve(data.data)
+          } else {
+            reject(new Error(data.message || '上传失败'))
+          }
+        } catch (e) {
+          reject(new Error('解析响应失败'))
+        }
+      },
+      fail: (error) => {
+        reject(new Error('上传失败: ' + error.errMsg))
+      }
+    })
+  })
+}
+
+/**
  * 统一API对象 - 提供所有API的便捷访问
  */
 export const API = {
@@ -47,7 +78,10 @@ export const API = {
   region: RegionAPI,
   
   // 聊天相关API
-  chat: ChatAPI
+  chat: ChatAPI,
+  
+  // 图片上传API
+  uploadImage: uploadImage
 }
 
 /**
@@ -117,34 +151,8 @@ export const unpinConversation = (id) => API.chat.unpinConversation(id)
 export const deleteConversation = (id) => API.chat.deleteConversation(id)
 export const autoSendLandlordContact = (conversationId, landlordId, homestayId) => API.chat.autoSendLandlordContact(conversationId, landlordId, homestayId)
 
-// 其他功能
-export const uploadImage = (filePath) => {
-  return new Promise((resolve, reject) => {
-    uni.uploadFile({
-      url: config.uploadUrl,
-      filePath: filePath,
-      name: 'file',
-      header: {
-        'Authorization': `Bearer ${uni.getStorageSync('token')}`
-      },
-      success: (res) => {
-        try {
-          const data = JSON.parse(res.data)
-          if (data.code === 1) {
-            resolve(data.data)
-          } else {
-            reject(new Error(data.message || '上传失败'))
-          }
-        } catch (e) {
-          reject(new Error('解析响应失败'))
-        }
-      },
-      fail: (error) => {
-        reject(new Error('上传失败: ' + error.errMsg))
-      }
-    })
-  })
-}
+// 导出uploadImage函数（用于向后兼容）
+export { uploadImage }
 
 // 默认导出API对象
 export default API

@@ -7,8 +7,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { API } from '../../../api'
-import { useLoadingStore } from './loading'
-import { useValidationStore } from './validation'
+import { useLoadingStore } from '../loading'
+import { useValidationStore } from '../validation'
 
 export const useUserProfileStore = defineStore('userProfile', () => {
   // 使用统一的loading管理

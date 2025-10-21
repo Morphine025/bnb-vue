@@ -150,6 +150,13 @@ export const useHomestayStore = defineStore('homestay', () => {
   const favoriteIds = computed(() => 
     favoriteHomestays.value.map(item => item.id)
   )
+  
+  /**
+   * 加载状态
+   * @description 获取民宿列表的加载状态
+   * @type {ComputedRef<boolean>}
+   */
+  const isLoading = computed(() => loadingStore.isLoading('homestay-list'))
 
   // 虚拟滚动相关状态
   const virtualListConfig = ref({
@@ -170,25 +177,7 @@ export const useHomestayStore = defineStore('homestay', () => {
     return createVirtualList(filteredList.value, finalConfig)
   }
 
-  /**
-   * 防抖加载更多民宿
-   * @description 使用防抖优化加载更多操作，避免频繁请求
-   * @type {Function}
-   */
-  const debouncedLoadMore = debounce(loadMoreHomestays, 300, {
-    leading: false,
-    trailing: true
-  })
 
-  /**
-   * 节流刷新列表
-   * @description 使用节流优化刷新操作，避免频繁刷新
-   * @type {Function}
-   */
-  const throttledRefresh = throttle(refreshHomestayList, 1000, {
-    leading: true,
-    trailing: false
-  })
 
   // Actions
   const setHomestayList = (list) => {
@@ -303,13 +292,12 @@ export const useHomestayStore = defineStore('homestay', () => {
       const cachedData = cacheStore.getCache(cacheKey, { dataType: 'homestay-list' })
       if (cachedData) {
         console.log('✅ 使用缓存的民宿列表数据')
-        // 验证缓存数据
-        const validatedCachedData = validationStore.validateApiResponseData(cachedData, 'homestay')
-        const newList = validatedCachedData.list || []
+        // 直接使用缓存数据，不需要API响应格式验证
+        const newList = cachedData.list || []
         if (newList.length > 0) {
           appendHomestayList(newList)
           setCurrentPage(pageToLoad)
-          setHasMore(validatedCachedData.hasMore || false)
+          setHasMore(cachedData.hasMore || false)
         }
         return
       }
@@ -373,10 +361,30 @@ export const useHomestayStore = defineStore('homestay', () => {
     }
   }
 
+  /**
+   * 防抖加载更多民宿
+   * @description 使用防抖优化加载更多操作，避免频繁请求
+   * @type {Function}
+   */
+  const debouncedLoadMore = debounce(loadMoreHomestays, 300, {
+    leading: false,
+    trailing: true
+  })
+
   const refreshHomestayList = async () => {
     clearHomestayList()
     await loadMoreHomestays()
   }
+
+  /**
+   * 节流刷新列表
+   * @description 使用节流优化刷新操作，避免频繁刷新
+   * @type {Function}
+   */
+  const throttledRefresh = throttle(refreshHomestayList, 1000, {
+    leading: true,
+    trailing: false
+  })
 
   // 获取民宿详情
   const fetchHomestayDetail = async (homestayId) => {

@@ -5,6 +5,7 @@
  */
 
 import { BaseAPI } from '../core/BaseAPI.js'
+import { config } from '../config'
 
 /**
  * 用户API类 - 提供用户相关操作
@@ -60,6 +61,39 @@ export class UserAPI {
   static async updateInfo(data) {
     return BaseAPI.put('/info', data, {
       errorMessage: '更新用户信息失败'
+    })
+  }
+
+  /**
+   * 上传用户头像
+   * @param {string} filePath - 文件路径
+   * @returns {Promise} 上传结果
+   */
+  static async uploadAvatar(filePath) {
+    return new Promise((resolve, reject) => {
+      uni.uploadFile({
+        url: `${config.baseUrl}/user/upload/avatar`,
+        filePath: filePath,
+        name: 'avatar',
+        header: {
+          'Authorization': `Bearer ${uni.getStorageSync('token')}`
+        },
+        success: (res) => {
+          try {
+            const data = JSON.parse(res.data)
+            if (data.code === 1) {
+              resolve(data.data)
+            } else {
+              reject(new Error(data.message || '头像上传失败'))
+            }
+          } catch (e) {
+            reject(new Error('解析响应失败'))
+          }
+        },
+        fail: (error) => {
+          reject(new Error('头像上传失败: ' + error.errMsg))
+        }
+      })
     })
   }
 

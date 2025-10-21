@@ -4,6 +4,10 @@
  * 主要功能：错误分类、用户提示、日志记录
  */
 
+// 导入统一错误处理模块
+import { handleError as globalHandleError } from '../error/errorHandler.js'
+import { ErrorTypes, ErrorLevels } from '../error/errorTypes.js'
+
 /**
  * 生成请求ID
  * @returns {string} 请求ID
@@ -20,92 +24,103 @@ export const generateRequestId = () => {
  * @returns {Object} 处理结果
  */
 export const handleError = (error, context = '', options = {}) => {
-  const result = {
-    type: 'UNKNOWN',
-    level: 'medium',
-    message: error.message || '操作失败',
-    showToast: options.showToast !== false,
-    logError: options.logError !== false
+  const utilsContext = {
+    module: 'Utils',
+    layer: 'Utils',
+    context: context
   }
-
-  // 错误分类
-  if (isNetworkError(error)) {
-    result.type = 'NETWORK'
-    result.message = '网络连接失败，请检查网络设置'
-  } else if (isApiError(error)) {
-    result.type = 'API'
-    result.message = error.message || '请求失败，请重试'
-  } else if (isValidationError(error)) {
-    result.type = 'VALIDATION'
-    result.level = 'low'
-    result.message = error.message || '输入信息有误'
-  }
-
-  // 记录错误日志
-  if (result.logError) {
-    console.error(`${context}:`, error)
-  }
-
-  // 显示用户提示
-  if (result.showToast) {
-    uni.showToast({
-      title: result.message,
-      icon: 'none',
-      duration: 2000
-    })
-  }
-
-  return result
+  
+  return globalHandleError(error, options, utilsContext)
 }
 
 /**
- * 判断是否为网络错误
+ * 处理网络错误
  * @param {Error|Object} error - 错误对象
- * @returns {boolean} 是否为网络错误
+ * @param {string} context - 错误上下文
+ * @param {Object} options - 处理选项
+ * @returns {Object} 处理结果
  */
-const isNetworkError = (error) => {
-  if (!error) return false
-
-  const networkKeywords = ['network', 'timeout', 'connection', 'fetch']
-  const errorMessage = (error.message || '').toLowerCase()
-
-  return (
-    networkKeywords.some((keyword) => errorMessage.includes(keyword)) ||
-    error.code === 'NETWORK_ERROR' ||
-    error.status === 0
-  )
+export const handleNetworkError = (error, context = '', options = {}) => {
+  const utilsContext = {
+    module: 'Utils',
+    layer: 'Utils',
+    context: context,
+    errorType: 'NETWORK_ERROR'
+  }
+  
+  return globalHandleError(error, options, utilsContext)
 }
 
 /**
- * 判断是否为API错误
+ * 处理API错误
  * @param {Error|Object} error - 错误对象
- * @returns {boolean} 是否为API错误
+ * @param {string} context - 错误上下文
+ * @param {Object} options - 处理选项
+ * @returns {Object} 处理结果
  */
-const isApiError = (error) => {
-  if (!error) return false
-
-  return (
-    error.code !== undefined ||
-    error.status !== undefined ||
-    error.response !== undefined
-  )
+export const handleAPIError = (error, context = '', options = {}) => {
+  const utilsContext = {
+    module: 'Utils',
+    layer: 'Utils',
+    context: context,
+    errorType: 'API_ERROR'
+  }
+  
+  return globalHandleError(error, options, utilsContext)
 }
 
 /**
- * 判断是否为验证错误
+ * 处理验证错误
  * @param {Error|Object} error - 错误对象
- * @returns {boolean} 是否为验证错误
+ * @param {string} context - 错误上下文
+ * @param {Object} options - 处理选项
+ * @returns {Object} 处理结果
  */
-const isValidationError = (error) => {
-  if (!error) return false
+export const handleValidationError = (error, context = '', options = {}) => {
+  const utilsContext = {
+    module: 'Utils',
+    layer: 'Utils',
+    context: context,
+    errorType: 'VALIDATION_ERROR'
+  }
+  
+  return globalHandleError(error, options, utilsContext)
+}
 
-  const validationKeywords = ['validation', 'invalid', 'required', 'format']
-  const errorMessage = (error.message || '').toLowerCase()
+/**
+ * 处理业务错误
+ * @param {Error|Object} error - 错误对象
+ * @param {string} context - 错误上下文
+ * @param {Object} options - 处理选项
+ * @returns {Object} 处理结果
+ */
+export const handleBusinessError = (error, context = '', options = {}) => {
+  const utilsContext = {
+    module: 'Utils',
+    layer: 'Utils',
+    context: context,
+    errorType: 'BUSINESS_ERROR'
+  }
+  
+  return globalHandleError(error, options, utilsContext)
+}
 
-  return (
-    validationKeywords.some((keyword) => errorMessage.includes(keyword)) ||
-    error.type === 'VALIDATION_ERROR'
-  )
+/**
+ * 处理系统错误
+ * @param {Error|Object} error - 错误对象
+ * @param {string} context - 错误上下文
+ * @param {Object} options - 处理选项
+ * @returns {Object} 处理结果
+ */
+export const handleSystemError = (error, context = '', options = {}) => {
+  const utilsContext = {
+    module: 'Utils',
+    layer: 'Utils',
+    context: context,
+    errorType: 'SYSTEM_ERROR'
+  }
+  
+  return globalHandleError(error, options, utilsContext)
 }
 
 /**

@@ -5,7 +5,8 @@
  */
 
 import http from '../http'
-import { handleApiError } from '@/utils'
+import { handleError } from '@/utils/error/errorHandler.js'
+import { ErrorTypes, ErrorOptions } from '@/utils/error/errorTypes.js'
 
 /**
  * API基类 - 提供通用的CRUD操作
@@ -23,7 +24,29 @@ export class BaseAPI {
       const response = await http(url, params, 'GET')
       return response
     } catch (error) {
-      throw handleApiError(error, options.errorMessage || '获取数据失败')
+      const apiContext = {
+        module: 'BaseAPI',
+        layer: 'API',
+        method: 'GET',
+        url: url,
+        params: params
+      }
+      
+      const errorOptions = {
+        [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
+        [ErrorOptions.LOG_ERROR]: true,
+        [ErrorOptions.REPORT_ERROR]: options.reportError || false,
+        [ErrorOptions.RETRY_ENABLED]: options.retryEnabled || false,
+        customMessage: options.errorMessage || '获取数据失败'
+      }
+      
+      const result = handleError(error, apiContext, errorOptions)
+      
+      if (result.handled) {
+        throw new Error(result.errorInfo.message)
+      } else {
+        throw error
+      }
     }
   }
 
@@ -43,7 +66,30 @@ export class BaseAPI {
         console.warn('POST 静默错误:', url, error)
         return Promise.resolve(null)
       }
-      throw handleApiError(error, options.errorMessage || '提交数据失败')
+      
+      const apiContext = {
+        module: 'BaseAPI',
+        layer: 'API',
+        method: 'POST',
+        url: url,
+        data: data
+      }
+      
+      const errorOptions = {
+        [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
+        [ErrorOptions.LOG_ERROR]: true,
+        [ErrorOptions.REPORT_ERROR]: options.reportError || false,
+        [ErrorOptions.RETRY_ENABLED]: options.retryEnabled || false,
+        customMessage: options.errorMessage || '提交数据失败'
+      }
+      
+      const result = handleError(error, apiContext, errorOptions)
+      
+      if (result.handled) {
+        throw new Error(result.errorInfo.message)
+      } else {
+        throw error
+      }
     }
   }
 
@@ -59,7 +105,29 @@ export class BaseAPI {
       const response = await http(url, data, 'PUT')
       return response
     } catch (error) {
-      throw handleApiError(error, options.errorMessage || '更新数据失败')
+      const apiContext = {
+        module: 'BaseAPI',
+        layer: 'API',
+        method: 'PUT',
+        url: url,
+        data: data
+      }
+      
+      const errorOptions = {
+        [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
+        [ErrorOptions.LOG_ERROR]: true,
+        [ErrorOptions.REPORT_ERROR]: options.reportError || false,
+        [ErrorOptions.RETRY_ENABLED]: options.retryEnabled || false,
+        customMessage: options.errorMessage || '更新数据失败'
+      }
+      
+      const result = handleError(error, apiContext, errorOptions)
+      
+      if (result.handled) {
+        throw new Error(result.errorInfo.message)
+      } else {
+        throw error
+      }
     }
   }
 
@@ -75,7 +143,29 @@ export class BaseAPI {
       const response = await http(url, data, 'DELETE')
       return response
     } catch (error) {
-      throw handleApiError(error, options.errorMessage || '删除数据失败')
+      const apiContext = {
+        module: 'BaseAPI',
+        layer: 'API',
+        method: 'DELETE',
+        url: url,
+        data: data
+      }
+      
+      const errorOptions = {
+        [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
+        [ErrorOptions.LOG_ERROR]: true,
+        [ErrorOptions.REPORT_ERROR]: options.reportError || false,
+        [ErrorOptions.RETRY_ENABLED]: options.retryEnabled || false,
+        customMessage: options.errorMessage || '删除数据失败'
+      }
+      
+      const result = handleError(error, apiContext, errorOptions)
+      
+      if (result.handled) {
+        throw new Error(result.errorInfo.message)
+      } else {
+        throw error
+      }
     }
   }
 

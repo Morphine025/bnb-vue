@@ -8,7 +8,7 @@
 import { isLocalDevelopment, getRecommendedProtocol, getDevelopmentSuggestions } from './environmentDetector'
 
 /**
- * 将HTTP URL转换为HTTPS（仅在生产环境）
+ * 将HTTP URL转换为HTTPS（智能处理微信小程序环境）
  * @param {string} url - 原始URL
  * @returns {string} 转换后的URL
  */
@@ -27,11 +27,46 @@ export const convertToHttps = (url) => {
     return url
   }
   
+  // 检查是否为微信小程序环境
+  const isWechatMiniProgram = typeof wx !== 'undefined' && (wx.getWindowInfo || wx.getSystemInfoSync)
+  
+  // 特殊处理微信小程序临时文件
+  if (isWechatMiniProgram && url.startsWith('http://tmp/')) {
+    console.warn('⚠️ 检测到微信小程序临时文件路径:', url)
+    console.warn('💡 临时文件需要先上传到服务器才能正常显示')
+    console.warn('💡 建议：使用头像上传功能将临时文件上传到服务器')
+    
+    // 对于临时文件，返回默认头像
+    return '/static/logo.png'
+  }
+  
   // 使用智能环境检测
   const recommendedProtocol = getRecommendedProtocol(url)
   
-  // 如果推荐使用HTTP，保持HTTP协议
-  if (recommendedProtocol === 'http') {
+  // 如果是微信小程序环境，智能处理协议转换
+  if (isWechatMiniProgram && url.startsWith('http://')) {
+    // 检查是否为本地开发服务器
+    const isLocalDevServer = url.includes('localhost:8081') || url.includes('127.0.0.1:8081')
+    
+    if (isLocalDevServer) {
+      // 本地开发环境：提供开发建议，但保持HTTP协议以便调试
+      console.warn('⚠️ 微信小程序环境检测到本地HTTP服务器')
+      console.warn('💡 建议：使用内网穿透工具（如ngrok）将本地服务暴露为HTTPS')
+      console.warn('💡 或者：在微信开发者工具中关闭"不校验合法域名"选项')
+      console.warn('💡 当前使用HTTP协议进行开发调试')
+      
+      // 在开发环境中，暂时保持HTTP协议以便调试
+      return url
+    } else {
+      // 非本地服务器，转换为HTTPS
+      const httpsUrl = url.replace('http://', 'https://')
+      console.log('🔒 微信小程序环境转换为HTTPS协议:', httpsUrl)
+      return httpsUrl
+    }
+  }
+  
+  // 如果推荐使用HTTP，保持HTTP协议（仅限非微信小程序环境）
+  if (recommendedProtocol === 'http' && !isWechatMiniProgram) {
     console.log('🔧 本地开发环境保持HTTP协议:', url)
     return url
   }
@@ -192,11 +227,26 @@ export const createImageErrorHandler = (originalUrl) => {
   return (error) => {
     console.warn('图片加载失败，尝试降级处理:', error)
     
+    // 检查是否为微信小程序环境
+    const isWechatMiniProgram = typeof wx !== 'undefined' && (wx.getWindowInfo || wx.getSystemInfoSync)
+    
     // 如果是HTTPS失败，尝试降级到HTTP（仅限本地开发环境）
     if (originalUrl && originalUrl.includes('localhost:8081')) {
-      const httpUrl = originalUrl.replace('https://', 'http://')
-      console.log('尝试使用HTTP协议:', httpUrl)
-      return httpUrl
+      if (originalUrl.startsWith('https://')) {
+        const httpUrl = originalUrl.replace('https://', 'http://')
+        console.log('🔄 尝试使用HTTP协议降级:', httpUrl)
+        if (isWechatMiniProgram) {
+          console.warn('⚠️ 注意：微信小程序可能仍会显示HTTP协议警告')
+          console.warn('💡 建议：在微信开发者工具中关闭"不校验合法域名"选项')
+        }
+        return httpUrl
+      }
+    }
+    
+    // 如果是HTTP失败，尝试使用默认图片
+    if (originalUrl && originalUrl.startsWith('http://')) {
+      console.log('🔄 使用默认图片作为降级方案')
+      return '/static/logo.png'
     }
     
     return null

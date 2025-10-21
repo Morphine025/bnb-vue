@@ -5,7 +5,7 @@
  */
 
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { validate, validateApiResponse, validatePagination } from '../../utils/security/dataValidator'
 
 export const useValidationStore = defineStore('validation', () => {
@@ -21,7 +21,7 @@ export const useValidationStore = defineStore('validation', () => {
   const validationRules = ref({
     // 用户信息验证规则
     userInfo: {
-      id: { required: true, type: 'string' },
+      userId: { required: true, type: 'string' }, // 使用userId而不是id
       nickName: { required: true, type: 'string', maxLength: 20 },
       avatarUrl: { type: 'string', pattern: /^https?:\/\/.+/ },
       phone: { type: 'string', pattern: /^1[3-9]\d{9}$/ },
@@ -32,31 +32,31 @@ export const useValidationStore = defineStore('validation', () => {
     
     // 民宿信息验证规则
     homestay: {
-      id: { required: true, type: 'string' },
-      title: { required: true, type: 'string', maxLength: 100 },
-      description: { type: 'string', maxLength: 500 },
-      price: { required: true, type: 'number', min: 0 },
-      location: { required: true, type: 'string', maxLength: 100 },
-      images: { type: 'object', isArray: true },
-      facilities: { type: 'object', isArray: true },
-      rating: { type: 'number', min: 0, max: 5 },
-      reviewCount: { type: 'number', min: 0 },
-      host: { type: 'object' },
-      coordinates: { type: 'object' },
-      roomType: { type: 'string' },
-      maxGuests: { type: 'number', min: 1, max: 20 },
-      amenities: { type: 'object', isArray: true },
-      policies: { type: 'object' },
-      availability: { type: 'object' }
+      id: { required: false, type: 'string' },
+      title: { required: false, type: 'string', maxLength: 100 },
+      description: { type: 'string', maxLength: 500, required: false },
+      price: { required: false, type: 'number', min: 0 },
+      location: { required: false, type: 'string', maxLength: 100 },
+      images: { type: 'object', isArray: true, required: false },
+      facilities: { type: 'object', isArray: true, required: false },
+      rating: { type: 'number', min: 0, max: 5, required: false },
+      reviewCount: { type: 'number', min: 0, required: false },
+      host: { type: 'object', required: false },
+      coordinates: { type: 'object', required: false },
+      roomType: { type: 'string', required: false },
+      maxGuests: { type: 'number', min: 1, max: 20, required: false },
+      amenities: { type: 'object', isArray: true, required: false },
+      policies: { type: 'object', required: false },
+      availability: { type: 'object', required: false }
     },
     
     // 搜索参数验证规则
     searchParams: {
-      keyword: { type: 'string', maxLength: 50 },
+      keyword: { type: 'string', maxLength: 50, required: false },
       page: { type: 'number', min: 1 },
       size: { type: 'number', min: 1, max: 100 },
       sortBy: { type: 'string', enum: ['default', 'price_asc', 'price_desc', 'rating'] },
-      location: { type: 'string', maxLength: 100 }
+      location: { type: 'string', maxLength: 100, required: false }
     },
     
     // 筛选条件验证规则

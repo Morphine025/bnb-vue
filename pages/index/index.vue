@@ -51,7 +51,7 @@
 					<swiper-item v-for="(banner, index) in bannerList" :key="banner.bannerId || banner.banner_id || banner.id || `banner_${index}`">
 						<view class="banner-item" @click="handleBannerClick(banner)">
 							<image 
-								:src="banner.imageUrl || banner.image_url || banner.image || banner.img || '/static/logo.png'" 
+								:src="getImageUrl(banner.imageUrl || banner.image_url || banner.image || banner.img)" 
 								mode="aspectFill" 
 								class="banner-image"
 								@error="handleBannerImageError"
@@ -101,7 +101,7 @@
 					<template v-slot:left="{ leftList }">
 						<view class="post-card" v-for="(item, index) in leftList" :key="index" @click="goDetail(item)">
 							<view class="post-image">
-								<image :src="item.img" mode="widthFix" class="post-img" @error="handleImageError"></image>
+								<image :src="getImageUrl(item.img)" mode="widthFix" class="post-img" @error="handleImageError"></image>
 								<view class="location-overlay" v-if="item.city || item.location">
 									<up-icon name="map" size="14" color="#fff"></up-icon>
 									<text class="location-text">{{ item.city || item.location }}</text>
@@ -133,7 +133,7 @@
 								<view class="post-footer">
 									<view class="user-info">
 										<view class="avatar">
-											<image :src="item.avatar || '/static/logo.png'" mode="aspectFill"></image>
+											<image :src="getImageUrl(item.avatar)" mode="aspectFill"></image>
 										</view>
 										<view class="user-details">
 											<text class="username">{{ item.author || 'Asuka' }}</text>
@@ -146,7 +146,7 @@
 					<template v-slot:right="{ rightList }">
 						<view class="post-card" v-for="(item, index) in rightList" :key="index" @click="goDetail(item)">
 							<view class="post-image">
-								<image :src="item.img" mode="widthFix" class="post-img" @error="handleImageError"></image>
+								<image :src="getImageUrl(item.img)" mode="widthFix" class="post-img" @error="handleImageError"></image>
 								<view class="location-overlay" v-if="item.city || item.location">
 									<up-icon name="map" size="14" color="#fff"></up-icon>
 									<text class="location-text">{{ item.city || item.location }}</text>
@@ -178,7 +178,7 @@
 								<view class="post-footer">
 									<view class="user-info">
 										<view class="avatar">
-											<image :src="item.avatar || '/static/logo.png'" mode="aspectFill"></image>
+											<image :src="getImageUrl(item.avatar)" mode="aspectFill"></image>
 										</view>
 										<view class="user-details">
 											<text class="username">{{ item.author || 'Asuka' }}</text>
@@ -197,7 +197,7 @@
 						<view class="single-top">
 							<!-- 左侧图片区域 -->
 							<view class="single-image">
-								<image :src="item.img" mode="aspectFill" class="single-img" @error="handleImageError($event, item, index)"></image>
+								<image :src="getImageUrl(item.img)" mode="aspectFill" class="single-img" @error="handleImageError($event, item, index)"></image>
 								<!-- 位置信息覆盖在图片上 -->
 								<view class="location-overlay" v-if="item.city || item.location">
 									<up-icon name="map" size="14" color="#fff"></up-icon>
@@ -333,7 +333,7 @@ import {
 
 // 导入Pinia stores
 import { 
-	useHomestayListStore,
+	useHomestayStore,
 	useHomestayFilterStore,
 	useUserProfileStore
 } from '../../stores'
@@ -341,8 +341,11 @@ import {
 // 导入价格格式化工具
 import { formatPrice } from '@/utils'
 
+// 导入URL转换工具
+import { convertToHttps, createImageErrorHandler } from '@/utils/security/urlConverter'
+
 // 使用模块化Store
-const homestayListStore = useHomestayListStore()
+const homestayListStore = useHomestayStore()
 const homestayFilterStore = useHomestayFilterStore()
 const userProfileStore = useUserProfileStore()
 
@@ -507,18 +510,32 @@ const loadMore = async () => {
 	}
 }
 
+// 智能图片URL处理
+const getImageUrl = (url) => {
+	if (!url) return '/static/logo.png'
+	return convertToHttps(url)
+}
+
 // 图片错误处理
 const handleImageError = (errorData) => {
 	console.log('图片加载失败:', errorData)
 	
-	// 如果是SSL协议错误，尝试降级到HTTP（仅限本地开发环境）
+	// 使用智能错误处理
 	if (errorData && errorData.target && errorData.target.src) {
 		const currentSrc = errorData.target.src
+		
+		// 如果是HTTPS失败，尝试降级到HTTP（仅限本地开发环境）
 		if (currentSrc.includes('https://localhost:8081')) {
 			const httpSrc = currentSrc.replace('https://', 'http://')
-			console.log('尝试降级到HTTP协议:', httpSrc)
+			console.log('🔄 尝试降级到HTTP协议:', httpSrc)
+			console.warn('⚠️ 注意：微信小程序可能仍会显示HTTP协议警告')
+			console.warn('💡 建议：在微信开发者工具中关闭"不校验合法域名"选项')
 			// 更新图片源
 			errorData.target.src = httpSrc
+		} else if (currentSrc.includes('http://localhost:8081')) {
+			// 如果HTTP也失败，使用默认图片
+			console.log('🔄 使用默认图片作为降级方案')
+			errorData.target.src = '/static/logo.png'
 		}
 	}
 }

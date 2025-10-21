@@ -34,20 +34,35 @@ uniapp-bnb-test/
 │   ├── interceptors/      # 请求拦截器
 │   └── index.js           # API统一入口
 ├── utils/                  # 工具函数目录
-│   ├── apiUtils.js        # API相关工具函数
-│   ├── cacheManager.js    # 缓存管理工具
-│   ├── constants.js       # 常量定义
-│   ├── dataValidator.js   # 数据验证工具
-│   ├── debounce.js        # 防抖函数
-│   ├── debugHelper.js     # 调试工具
-│   ├── errorHandler.js    # 错误处理工具
-│   ├── homestayStatus.js  # 民宿状态工具
-│   ├── inputSanitizer.js  # 输入清理工具
-│   ├── loadingManager.js  # 加载管理工具
-│   ├── performanceMonitor.js # 性能监控工具
-│   ├── priceFormatter.js  # 价格格式化工具
-│   ├── shareUtils.js      # 分享工具
-│   └── userInfo.js        # 用户信息工具
+│   ├── api/               # API相关工具
+│   │   └── apiUtils.js    # API工具函数
+│   ├── error/             # 统一错误处理模块
+│   │   ├── errorHandler.js # 统一错误处理器
+│   │   ├── errorTypes.js  # 错误类型定义
+│   │   ├── errorLogger.js # 错误日志记录器
+│   │   └── errorMessages.js # 错误消息映射
+│   ├── business/          # 业务逻辑工具
+│   │   ├── homestayStatus.js # 民宿状态工具
+│   │   ├── priceFormatter.js # 价格格式化工具
+│   │   └── userInfo.js    # 用户信息工具
+│   ├── cache/             # 缓存管理工具
+│   │   └── cacheManager.js # 缓存管理器
+│   ├── constants/         # 常量定义
+│   │   └── constants.js   # 常量定义
+│   ├── debug/             # 调试工具
+│   │   └── debugHelper.js # 调试工具
+│   ├── performance/       # 性能监控工具
+│   │   ├── debounce.js    # 防抖函数
+│   │   └── performanceMonitor.js # 性能监控
+│   ├── security/          # 安全工具
+│   │   ├── dataValidator.js # 数据验证工具
+│   │   └── inputSanitizer.js # 输入清理工具
+│   ├── ui/                # UI工具
+│   │   ├── loadingManager.js # 加载管理工具
+│   │   └── shareUtils.js  # 分享工具
+│   └── index.js           # 工具函数统一入口
+├── config/                 # 配置文件目录
+│   └── errorConfig.js     # 错误处理配置
 ├── stores/                # Pinia状态管理
 │   ├── modules/           # 模块化Store
 │   │   ├── homestay/     # 民宿相关状态
@@ -133,6 +148,12 @@ uniapp-bnb-test/
 - ⏳ 订单管理系统
 - ⏳ 数据统计面板
 - ⏳ 推送通知功能
+
+### 🔧 开发环境优化
+- ✅ **微信小程序开发**: 智能协议处理 + 开发环境降级
+- ✅ **图片加载优化**: 错误降级 + 默认图片处理
+- ✅ **调试工具**: 开发环境检测 + 调试信息输出
+- ✅ **URL转换**: 智能协议转换 + 环境适配
 
 ## 开发规范
 

@@ -10,7 +10,7 @@
 						</view>
 					</template>
 					<template v-else>
-						<image :src='userInfo.avatarUrl' mode="aspectFill" />
+						<image :src='safeAvatarUrl' mode="aspectFill" />
 						<view class="tit">
 							{{userInfo.nickName}}
 						</view>
@@ -76,7 +76,7 @@
 						获取用户头像
 					</view>
 					<button class="avatar-warpper" open-type="chooseAvatar" @chooseavatar="onChooseavatar">
-						<image class="avatar" :src="userInfo.avatarUrl"></image>
+						<image class="avatar" :src="safeAvatarUrl"></image>
 					</button>
 				</view>
 				<view class="flex">
@@ -119,6 +119,7 @@
 	
 	// 导入Pinia stores - 使用新的模块化Store
 	import { 
+		useUserStore,
 		useUserProfileStore,
 		useUserStatsStore,
 		useUserSettingsStore
@@ -126,8 +127,12 @@
 	
 	// 导入用户信息工具
 	import { refreshUserInfo } from '@/utils'
+	
+	// 导入URL转换工具
+	import { convertToHttps } from '@/utils/security/urlConverter'
 
 	// 使用新的模块化Store
+	const userStore = useUserStore()
 	const userProfileStore = useUserProfileStore()
 	const userStatsStore = useUserStatsStore()
 	const userSettingsStore = useUserSettingsStore()
@@ -138,13 +143,19 @@
 	const loading = ref(false) // 加载状态
 	
 	// 从新的模块化Store获取数据
-	const userInfo = computed(() => userProfileStore.userInfo || { nickName: '', avatarUrl: '' })
+	const userInfo = computed(() => userStore.userInfo || { nickName: '', avatarUrl: '' })
 	const userStats = computed(() => userStatsStore.userStats || {
 		fansCount: 0,
 		followCount: 0,
 		likeCount: 0,
 		collectCount: 0,
 		viewCount: 0
+	})
+	
+	// 安全的头像URL
+	const safeAvatarUrl = computed(() => {
+		if (!userInfo.value?.avatarUrl) return '/static/logo.png'
+		return convertToHttps(userInfo.value.avatarUrl)
 	})
 
 	/**
@@ -153,7 +164,7 @@
 	 */
 	const updateUserData = (userData) => {
 		// 使用userStore更新用户数据
-		userProfileStore.setUserInfo(userData)
+		userStore.setUserInfo(userData)
 		if (userData.stats) {
 			userStatsStore.setUserStats(userData.stats)
 		}
@@ -166,7 +177,7 @@
 	 */
 	const loadUserDataFromStorage = () => {
 		// 使用userStore初始化用户数据
-		userProfileStore.initializeUser()
+		userStore.initializeUser()
 	}
 
 	/**
@@ -175,7 +186,7 @@
 	const loadUserDataFromServer = async () => {
 		try {
 			// 使用userStore获取用户信息
-			const userData = await userProfileStore.fetchUserInfo()
+			const userData = await userStore.fetchUserInfo()
 			return userData
 		} catch (error) {
 			console.error('获取用户信息失败，可能是token无效:', error)
@@ -234,7 +245,7 @@
 	 * 检查是否已登录
 	 */
 	const isLoggedIn = () => {
-		return userProfileStore.isLoggedIn
+		return userStore.isLoggedIn
 	}
 
 	/**
@@ -365,7 +376,7 @@
 					console.log('✅ 用户确认退出登录')
 					
 					// 使用userStore执行登出
-					userProfileStore.logout()
+					userStore.logout()
 					console.log('✅ Store logout 执行完成')
 					
 					// 清除统计数据
@@ -448,11 +459,11 @@
 			nickName: userInfo.value.nickName
 		}
 		
-		console.log('准备调用userProfileStore.performLogin，参数:', loginData)
+		console.log('准备调用userStore.performLogin，参数:', loginData)
 		
 		try {
 			console.log('📡 开始调用API...')
-			const result = await userProfileStore.performLogin(loginData)
+			const result = await userStore.performLogin(loginData)
 			console.log('✅ API调用成功，返回结果:', result)
 			
 			uni.removeStorageSync('wxLoginCode')
@@ -502,7 +513,7 @@
 		setTimeout(() => {
 			console.log('强制刷新后用户信息:', userInfo.value)
 			console.log('强制刷新后统计数据:', userStats.value)
-			console.log('强制刷新后Store状态:', userProfileStore.userInfo)
+			console.log('强制刷新后Store状态:', userStore.userInfo)
 			
 			// 检查是否已退出登录
 			const token = uni.getStorageSync('token')
@@ -563,6 +574,58 @@
 			// 关闭登录弹窗 - 修复变量名
 			show.value = false
 			console.log('✅ 弹窗已关闭')
+			
+			// 检查是否有临时头像需要上传
+			const currentUserInfo = userStore.userInfo || {}
+			if (currentUserInfo.tempAvatarPath && currentUserInfo.tempAvatarPath.startsWith('http://tmp/')) {
+				console.log('🔄 检测到临时头像，开始上传...')
+				
+				try {
+					// 显示上传进度
+					uni.showLoading({
+						title: '上传头像中...'
+					})
+					
+					// 上传头像到服务器
+					const uploadResult = await API.user.uploadAvatar(currentUserInfo.tempAvatarPath)
+					console.log('头像上传成功:', uploadResult)
+					
+					// 使用服务器返回的头像URL
+					const serverAvatarUrl = uploadResult.url || uploadResult.avatarUrl
+					console.log('服务器返回的头像URL:', serverAvatarUrl)
+					
+					// 更新Store中的用户信息，移除临时路径标识
+					userStore.setUserInfo({ 
+						...currentUserInfo, 
+						avatarUrl: serverAvatarUrl,
+						tempAvatarPath: null  // 清除临时路径标识
+					})
+					console.log('头像已更新到Store:', userStore.userInfo)
+					
+					uni.hideLoading()
+					uni.showToast({
+						title: '头像上传成功',
+						icon: 'success'
+					})
+					
+				} catch (uploadError) {
+					console.error('头像上传失败:', uploadError)
+					uni.hideLoading()
+					
+					// 上传失败时，使用默认头像
+					userStore.setUserInfo({ 
+						...currentUserInfo, 
+						avatarUrl: '/static/logo.png',
+						tempAvatarPath: null
+					})
+					
+					uni.showToast({
+						title: '头像上传失败，使用默认头像',
+						icon: 'none',
+						duration: 2000
+					})
+				}
+			}
 			
 			// 刷新整个my页面
 			console.log('🔄 开始刷新my页面...')
@@ -647,16 +710,41 @@
 	 * 选择头像
 	 * @param {object} e - 事件对象
 	 */
-	const onChooseavatar = (e) => {
+	const onChooseavatar = async (e) => {
 		try {
 			console.log('用户选择头像:', e.detail.avatarUrl)
-			// 直接更新Store中的用户信息
-			const currentUserInfo = userProfileStore.userInfo || {}
-			userProfileStore.setUserInfo({ 
-				...currentUserInfo, 
-				avatarUrl: e.detail.avatarUrl 
-			})
-			console.log('头像已更新到Store:', userProfileStore.userInfo)
+			
+			// 检查是否为微信小程序临时文件
+			if (e.detail.avatarUrl.startsWith('http://tmp/')) {
+				console.log('检测到微信小程序临时文件，保存临时路径，登录后上传')
+				
+				// 对于临时文件，先保存临时路径，登录后再上传
+				const currentUserInfo = userStore.userInfo || {}
+				userStore.setUserInfo({ 
+					...currentUserInfo, 
+					avatarUrl: e.detail.avatarUrl,  // 保存临时路径
+					tempAvatarPath: e.detail.avatarUrl  // 额外保存临时路径标识
+				})
+				console.log('临时头像路径已保存，等待登录后上传')
+				
+				uni.showToast({
+					title: '头像已选择，登录后自动上传',
+					icon: 'success',
+					duration: 2000
+				})
+			} else {
+				// 非临时文件，直接转换协议
+				const safeAvatarUrl = convertToHttps(e.detail.avatarUrl)
+				console.log('转换后的头像URL:', safeAvatarUrl)
+				
+				// 直接更新Store中的用户信息
+				const currentUserInfo = userStore.userInfo || {}
+				userStore.setUserInfo({ 
+					...currentUserInfo, 
+					avatarUrl: safeAvatarUrl 
+				})
+				console.log('头像已更新到Store:', userStore.userInfo)
+			}
 		} catch (error) {
 			console.error('选择头像失败:', error)
 			uni.showToast({
@@ -674,12 +762,12 @@
 		try {
 			console.log('用户输入昵称:', e.detail.value)
 			// 直接更新Store中的用户信息
-			const currentUserInfo = userProfileStore.userInfo || {}
-			userProfileStore.setUserInfo({ 
-				...currentUserInfo, 
-				nickName: e.detail.value 
+			const currentUserInfo = userStore.userInfo || {}
+			userStore.setUserInfo({ 
+				...currentUserInfo,
+				nickName: e.detail.value
 			})
-			console.log('昵称已更新到Store:', userProfileStore.userInfo)
+			console.log('昵称已更新到Store:', userStore.userInfo)
 		} catch (error) {
 			console.error('修改昵称失败:', error)
 		}

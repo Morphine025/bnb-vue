@@ -114,7 +114,8 @@ export const useCacheStrategyStore = defineStore('cacheStrategy', () => {
     try {
       const strategy = getCacheStrategy(dataType)
       const serializedData = JSON.stringify(data)
-      const dataSize = new Blob([serializedData]).size
+      // 使用字符串长度估算数据大小（字节）- 兼容微信小程序环境
+      const dataSize = serializedData.length * 2 // 粗略估算：中文字符占2字节，英文字符占1字节
       
       // 检查缓存大小限制
       const config = cacheConfig.value[strategy]
@@ -164,7 +165,9 @@ export const useCacheStrategyStore = defineStore('cacheStrategy', () => {
           if (data) {
             cacheData.value[strategy].set(key, data)
             cacheTimestamps.value[strategy].set(key, Date.now())
-            cacheSizes.value[strategy].set(key, new Blob([JSON.stringify(data)]).size)
+            // 使用字符串长度估算数据大小，兼容微信小程序环境
+            const dataSize = JSON.stringify(data).length * 2
+            cacheSizes.value[strategy].set(key, dataSize)
             cacheStats.value.hits++
             return data
           }
