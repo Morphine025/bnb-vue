@@ -10,7 +10,6 @@ export {
   ErrorHandler, 
   globalErrorHandler, 
   handleError, 
-  handleApiError,
   ErrorTypes,
   ErrorLevels 
 } from './core/ErrorHandler'

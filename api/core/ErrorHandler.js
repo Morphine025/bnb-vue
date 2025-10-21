@@ -345,7 +345,3 @@ export const globalErrorHandler = new ErrorHandler()
 
 // 导出便捷方法
 export const handleError = (error, options) => globalErrorHandler.handle(error, options)
-export const handleApiError = (error, customMessage) => globalErrorHandler.handle(error, { 
-  customMessage,
-  showToast: true 
-})
