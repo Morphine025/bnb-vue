@@ -11,13 +11,31 @@ stores/
 ├── index.js                 # 入口文件，统一导出所有store
 ├── modules/                 # store模块目录
 │   ├── app.js              # 应用全局状态
-│   ├── homestay.js         # 民宿模块状态
-│   ├── search.js           # 搜索模块状态
+│   ├── cache.js            # 缓存模块状态
+│   ├── homestay.js         # 民宿模块状态（主模块）
+│   ├── homestay/            # 民宿子模块
+│   │   ├── detail.js       # 民宿详情状态
+│   │   ├── favorites.js    # 收藏状态
+│   │   ├── filter.js       # 筛选状态
+│   │   └── list.js         # 列表状态
+│   ├── message.js          # 消息模块状态
+│   ├── performance.js      # 性能监控状态
+│   ├── search.js           # 搜索模块状态（主模块）
+│   ├── search/             # 搜索子模块
+│   │   ├── history.js      # 搜索历史
+│   │   ├── search.js       # 搜索功能
+│   │   └── suggestions.js  # 搜索建议
 │   ├── ui.js               # UI模块状态
-│   └── cache.js            # 缓存模块状态
+│   ├── user.js             # 用户模块状态（主模块）
+│   └── user/               # 用户子模块
+│       ├── follow.js       # 关注功能
+│       ├── profile.js      # 用户资料
+│       ├── settings.js     # 用户设置
+│       └── stats.js        # 用户统计
 ├── types/                   # 类型定义
 │   └── index.js            # 所有类型定义
 ├── examples/                # 使用示例
+│   ├── refactored-usage-examples.vue  # 重构后使用示例
 │   └── usage-examples.vue  # 完整使用示例
 └── README.md               # 本文档
 ```
