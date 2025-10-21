@@ -7,9 +7,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { API } from '../../api'
-import { cacheUtils } from '@/utils'
+import { cacheUtils, debounce, throttle } from '@/utils'
+import { useStateSyncStore } from './state-sync'
 
 export const useSearchStore = defineStore('search', () => {
+  // 使用状态同步管理
+  const stateSyncStore = useStateSyncStore()
   // 搜索历史
   const searchHistory = ref([])
   const maxHistoryCount = 20
@@ -85,6 +88,15 @@ export const useSearchStore = defineStore('search', () => {
     
     // 持久化到本地存储
     saveSearchHistoryToStorage()
+    
+    // 通知状态同步
+    stateSyncStore.addToSyncQueue({
+      type: 'search-history',
+      data: {
+        keyword: trimmedKeyword,
+        timestamp: Date.now()
+      }
+    })
   }
 
   const removeFromSearchHistory = (keyword) => {
@@ -183,7 +195,13 @@ export const useSearchStore = defineStore('search', () => {
     }
   }
 
-  // 搜索相关方法 - 添加缓存和防抖优化
+  /**
+   * 执行搜索操作
+   * @description 执行搜索操作，包含缓存、防抖和请求去重优化
+   * @param {string} keyword - 搜索关键词
+   * @param {Object} options - 搜索选项
+   * @returns {Promise<Object>} 搜索结果
+   */
   const performSearch = async (keyword, options = {}) => {
     if (!keyword || !keyword.trim()) return
     
@@ -195,7 +213,7 @@ export const useSearchStore = defineStore('search', () => {
     const cachedResult = cacheUtils.get(cacheKey)
     
     if (cachedResult) {
-      console.log('使用缓存的搜索结果')
+      console.log('✅ 使用缓存的搜索结果')
       setSearchResults(cachedResult.list || [])
       setSearchStats({
         totalResults: cachedResult.total || 0,
@@ -205,10 +223,10 @@ export const useSearchStore = defineStore('search', () => {
       return cachedResult
     }
     
-    // 请求去重
+    // 请求去重 - 防止重复请求
     const requestKey = `search_${trimmedKeyword}`
     if (pendingRequests.has(requestKey)) {
-      console.log('搜索请求已在进行中，跳过重复请求')
+      console.log('⚠️ 搜索请求已在进行中，跳过重复请求')
       return
     }
     
@@ -240,13 +258,15 @@ export const useSearchStore = defineStore('search', () => {
         }
         setSearchStats(searchStats)
         
-        // 缓存搜索结果
+        // 缓存搜索结果 - 短期缓存1分钟
         const cacheData = {
           list: results,
           total: response.data.total || results.length,
           timestamp: Date.now()
         }
-        cacheUtils.set(cacheKey, cacheData, 60000) // 缓存1分钟
+        cacheUtils.set(cacheKey, cacheData, 60000)
+        
+        console.log(`✅ 搜索完成: ${results.length} 条结果，耗时 ${searchStats.searchTime}ms`)
         
       } else {
         setSearchResults([])
@@ -255,11 +275,17 @@ export const useSearchStore = defineStore('search', () => {
           searchTime: Date.now() - startTime,
           lastSearchTime: new Date().toISOString()
         })
+        console.log('❌ 搜索无结果')
       }
       
     } catch (error) {
-      console.error('搜索失败:', error)
+      console.error('❌ 搜索失败:', error)
       setSearchResults([])
+      setSearchStats({
+        totalResults: 0,
+        searchTime: Date.now() - startTime,
+        lastSearchTime: new Date().toISOString()
+      })
     } finally {
       setSearching(false)
       pendingRequests.delete(requestKey)
@@ -294,6 +320,12 @@ export const useSearchStore = defineStore('search', () => {
     }
   }
 
+  /**
+   * 获取搜索建议
+   * @description 获取搜索建议，包含防抖优化和缓存机制
+   * @param {string} keyword - 搜索关键词
+   * @returns {Promise<void>}
+   */
   const getSearchSuggestions = async (keyword) => {
     if (!keyword || !keyword.trim()) {
       clearSearchSuggestions()
@@ -307,6 +339,7 @@ export const useSearchStore = defineStore('search', () => {
       
       if (response && response.code === 1 && response.data) {
         setSearchSuggestions(response.data)
+        console.log(`✅ 获取搜索建议成功: ${response.data.length} 条`)
       } else {
         // 如果API失败，使用默认建议
         const defaultSuggestions = [
@@ -315,10 +348,11 @@ export const useSearchStore = defineStore('search', () => {
           `${keyword}住宿`
         ]
         setSearchSuggestions(defaultSuggestions)
+        console.log('⚠️ 使用默认搜索建议')
       }
       
     } catch (error) {
-      console.error('获取搜索建议失败:', error)
+      console.error('❌ 获取搜索建议失败:', error)
       // 使用默认建议
       const defaultSuggestions = [
         `${keyword}民宿`,
@@ -329,6 +363,37 @@ export const useSearchStore = defineStore('search', () => {
     } finally {
       setSuggestionsLoading(false)
     }
+  }
+
+  /**
+   * 防抖搜索函数
+   * @description 使用防抖优化的搜索函数，避免频繁请求
+   * @param {string} keyword - 搜索关键词
+   * @param {Object} options - 搜索选项
+   * @returns {Function} 防抖后的搜索函数
+   */
+  const createDebouncedSearch = (keyword, options = {}) => {
+    return debounce(async (searchKeyword) => {
+      await performSearch(searchKeyword, options)
+    }, 300, {
+      leading: false,
+      trailing: true
+    })
+  }
+
+  /**
+   * 防抖搜索建议函数
+   * @description 使用防抖优化的搜索建议函数
+   * @param {string} keyword - 搜索关键词
+   * @returns {Function} 防抖后的搜索建议函数
+   */
+  const createDebouncedSuggestions = (keyword) => {
+    return debounce(async (searchKeyword) => {
+      await getSearchSuggestions(searchKeyword)
+    }, 200, {
+      leading: false,
+      trailing: true
+    })
   }
 
   const loadHotSearches = async () => {
@@ -417,6 +482,8 @@ export const useSearchStore = defineStore('search', () => {
     loadMoreSearchResults,
     getSearchSuggestions,
     loadHotSearches,
-    initializeSearch
+    initializeSearch,
+    createDebouncedSearch,
+    createDebouncedSuggestions
   }
 })

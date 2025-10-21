@@ -13,6 +13,7 @@ export * from './security/environmentDetector'
 // ==================== 性能相关工具 ====================
 export * from './performance/performanceMonitor'
 export * from './performance/debounce'
+export * from './performance/virtualList'
 
 // ==================== API相关工具 ====================
 export * from './api/apiUtils'

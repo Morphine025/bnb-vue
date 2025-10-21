@@ -8,10 +8,12 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { API } from '../../../api'
 import { useLoadingStore } from './loading'
+import { useValidationStore } from './validation'
 
 export const useUserProfileStore = defineStore('userProfile', () => {
   // 使用统一的loading管理
   const loadingStore = useLoadingStore()
+  const validationStore = useValidationStore()
   
   // 用户资料编辑状态
   const isEditing = ref(false)
@@ -27,6 +29,44 @@ export const useUserProfileStore = defineStore('userProfile', () => {
   
   // 资料验证状态
   const validationErrors = ref({})
+  
+  // 用户输入验证规则
+  const inputValidationRules = {
+    nickname: { required: true, type: 'string', maxLength: 20, minLength: 1 },
+    avatar: { type: 'string', pattern: /^https?:\/\/.+/ },
+    bio: { type: 'string', maxLength: 200 },
+    location: { type: 'string', maxLength: 50 }
+  }
+  
+  // 验证用户输入
+  const validateInput = (field, value) => {
+    try {
+      const rule = inputValidationRules[field]
+      if (!rule) return { isValid: true, error: null }
+      
+      const result = validationStore.createValidationMiddleware({ [field]: rule })({ [field]: value })
+      return { isValid: true, error: null }
+    } catch (error) {
+      return { isValid: false, error: error.message }
+    }
+  }
+  
+  // 验证整个表单
+  const validateForm = (formData) => {
+    const errors = {}
+    let isValid = true
+    
+    for (const [field, value] of Object.entries(formData)) {
+      const result = validateInput(field, value)
+      if (!result.isValid) {
+        errors[field] = result.error
+        isValid = false
+      }
+    }
+    
+    validationErrors.value = errors
+    return { isValid, errors }
+  }
   
   // Actions
   const setEditing = (editing) => {
@@ -84,18 +124,28 @@ export const useUserProfileStore = defineStore('userProfile', () => {
   
   // 保存用户资料
   const saveProfile = async () => {
-    if (!validateProfile(editForm.value)) {
+    // 验证表单数据
+    const validationResult = validateForm(editForm.value)
+    if (!validationResult.isValid) {
+      console.error('表单验证失败:', validationResult.errors)
       return false
     }
     
     loadingStore.setLoading('save-profile', true)
     try {
-      const response = await API.user.updateProfile(editForm.value)
-      if (response && response.data) {
+      // 验证并清洗数据
+      const sanitizedData = validationStore.sanitizeData(editForm.value, inputValidationRules)
+      
+      const response = await API.user.updateProfile(sanitizedData)
+      // 验证API响应
+      const validatedResponse = validationStore.validateApiResponseData(response, 'userInfo')
+      
+      if (validatedResponse) {
         // 清除编辑状态
         setEditing(false)
         clearEditForm()
-        return response.data
+        console.log('✅ 用户资料保存并验证成功')
+        return validatedResponse
       } else {
         throw new Error('保存资料失败')
       }
@@ -129,6 +179,7 @@ export const useUserProfileStore = defineStore('userProfile', () => {
     isEditing,
     editForm,
     validationErrors,
+    inputValidationRules,
     
     // Computed
     isUploadingAvatar,
@@ -138,6 +189,8 @@ export const useUserProfileStore = defineStore('userProfile', () => {
     setEditForm,
     clearEditForm,
     validateProfile,
+    validateInput,
+    validateForm,
     uploadAvatar,
     saveProfile,
     cancelEdit,

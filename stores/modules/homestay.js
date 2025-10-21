@@ -7,14 +7,18 @@
 import { defineStore } from 'pinia'
 import { ref, computed, shallowRef } from 'vue'
 import { API } from '../../api'
-import { processHomestayImages } from '../../utils/security/urlConverter'
+import { processHomestayImages, debounce, throttle, createVirtualList } from '../../utils'
 import { useLoadingStore } from './loading'
 import { useCacheStore } from './cache'
+import { useStateSyncStore } from './state-sync'
+import { useValidationStore } from './validation'
 
 export const useHomestayStore = defineStore('homestay', () => {
   // 使用统一的loading管理
   const loadingStore = useLoadingStore()
   const cacheStore = useCacheStore()
+  const stateSyncStore = useStateSyncStore()
+  const validationStore = useValidationStore()
   
   // 民宿列表数据 - 使用ref确保响应性
   const homestayList = ref([])
@@ -43,9 +47,15 @@ export const useHomestayStore = defineStore('homestay', () => {
   const favoriteHomestays = ref([])
   const isFavoriteLoading = ref(false)
 
-  // 数据映射缓存 - 使用computed缓存映射结果，避免重复计算
+  /**
+   * 处理后的民宿列表
+   * @description 使用computed缓存映射结果，避免重复计算，提升性能
+   * @type {ComputedRef<Array>}
+   */
   const processedHomestayList = computed(() => {
     console.log('🔄 processedHomestayList 计算中，原始数据长度:', homestayList.value.length)
+    
+    // 使用浅拷贝避免深度响应式，提升性能
     const processed = homestayList.value.map((item, index) => {
       // 处理图片URL，确保使用HTTPS
       const processedItem = processHomestayImages(item)
@@ -63,35 +73,40 @@ export const useHomestayStore = defineStore('homestay', () => {
         stats: processedItem.stats || null
       }
     })
+    
     console.log('✅ processedHomestayList 处理完成，处理后数据长度:', processed.length)
     return processed
   })
 
-  // 计算属性 - 优化过滤逻辑，使用处理后的数据
+  /**
+   * 筛选后的民宿列表
+   * @description 根据筛选条件过滤和排序民宿列表，使用优化的过滤逻辑
+   * @type {ComputedRef<Array>}
+   */
   const filteredList = computed(() => {
     let filtered = [...processedHomestayList.value]
     
-    // 位置筛选
+    // 位置筛选 - 使用includes进行模糊匹配
     if (filterConditions.value.location) {
       filtered = filtered.filter(item => 
-        item.location?.includes(filterConditions.value.location)
+        item.location?.toLowerCase().includes(filterConditions.value.location.toLowerCase())
       )
     }
     
-    // 价格筛选
+    // 价格筛选 - 范围筛选
     const [minPrice, maxPrice] = filterConditions.value.priceRange
     filtered = filtered.filter(item => 
       item.price >= minPrice && item.price <= maxPrice
     )
     
-    // 房间类型筛选
+    // 房间类型筛选 - 精确匹配
     if (filterConditions.value.roomType) {
       filtered = filtered.filter(item => 
         item.roomType === filterConditions.value.roomType
       )
     }
     
-    // 设施筛选
+    // 设施筛选 - 所有选中的设施都必须包含
     if (filterConditions.value.facilities.length > 0) {
       filtered = filtered.filter(item => 
         filterConditions.value.facilities.every(facility => 
@@ -100,35 +115,80 @@ export const useHomestayStore = defineStore('homestay', () => {
       )
     }
     
-    // 评分筛选
+    // 评分筛选 - 大于等于指定评分
     if (filterConditions.value.rating > 0) {
       filtered = filtered.filter(item => 
-        item.rating >= filterConditions.value.rating
+        (item.rating || 0) >= filterConditions.value.rating
       )
     }
     
-    // 排序
+    // 排序 - 使用稳定的排序算法
     switch (filterConditions.value.sortBy) {
       case 'price_asc':
-        filtered.sort((a, b) => a.price - b.price)
+        filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
         break
       case 'price_desc':
-        filtered.sort((a, b) => b.price - a.price)
+        filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
         break
       case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating)
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0))
         break
       default:
         // 默认排序保持原有顺序
         break
     }
     
+    console.log(`✅ 筛选完成: ${filtered.length} 条结果`)
     return filtered
   })
 
+  /**
+   * 收藏的民宿ID列表
+   * @description 快速查找收藏状态的ID列表
+   * @type {ComputedRef<Array>}
+   */
   const favoriteIds = computed(() => 
     favoriteHomestays.value.map(item => item.id)
   )
+
+  // 虚拟滚动相关状态
+  const virtualListConfig = ref({
+    itemHeight: 200, // 单个民宿卡片高度
+    containerHeight: 600, // 容器高度
+    bufferSize: 5, // 缓冲区大小
+    enableSmoothScroll: true // 启用平滑滚动
+  })
+
+  /**
+   * 创建虚拟列表实例
+   * @description 为大数据量列表创建虚拟滚动实例
+   * @param {Object} config - 虚拟列表配置
+   * @returns {Object} 虚拟列表实例
+   */
+  const createVirtualListInstance = (config = {}) => {
+    const finalConfig = { ...virtualListConfig.value, ...config }
+    return createVirtualList(filteredList.value, finalConfig)
+  }
+
+  /**
+   * 防抖加载更多民宿
+   * @description 使用防抖优化加载更多操作，避免频繁请求
+   * @type {Function}
+   */
+  const debouncedLoadMore = debounce(loadMoreHomestays, 300, {
+    leading: false,
+    trailing: true
+  })
+
+  /**
+   * 节流刷新列表
+   * @description 使用节流优化刷新操作，避免频繁刷新
+   * @type {Function}
+   */
+  const throttledRefresh = throttle(refreshHomestayList, 1000, {
+    leading: true,
+    trailing: false
+  })
 
   // Actions
   const setHomestayList = (list) => {
@@ -243,25 +303,32 @@ export const useHomestayStore = defineStore('homestay', () => {
       const cachedData = cacheStore.getCache(cacheKey, { dataType: 'homestay-list' })
       if (cachedData) {
         console.log('✅ 使用缓存的民宿列表数据')
-        const newList = cachedData.list || []
+        // 验证缓存数据
+        const validatedCachedData = validationStore.validateApiResponseData(cachedData, 'homestay')
+        const newList = validatedCachedData.list || []
         if (newList.length > 0) {
           appendHomestayList(newList)
           setCurrentPage(pageToLoad)
-          setHasMore(cachedData.hasMore || false)
+          setHasMore(validatedCachedData.hasMore || false)
         }
         return
       }
       
-      const response = await API.homestay.getHomeList({
+      // 验证搜索参数
+      const validatedParams = validationStore.validateSearchParams({
         page: pageToLoad,
         size: pageSize.value,
         ...filterConditions.value
       })
       
+      const response = await API.homestay.getHomeList(validatedParams)
+      
       console.log('📡 API响应:', response)
       
-      if (response && response.code === 1 && response.data) {
-        const newList = response.data.list || []
+      // 验证API响应数据
+      const validatedResponse = validationStore.validateApiResponseData(response, 'homestay')
+      if (validatedResponse) {
+        const newList = validatedResponse.list || []
         console.log('📡 API返回数据:', newList.length, '条')
         
         // 数据去重 - 避免重复数据
@@ -346,6 +413,17 @@ export const useHomestayStore = defineStore('homestay', () => {
             homestayList.value[index].isLiked = false
           }
         }
+        
+        // 通知状态同步
+        stateSyncStore.addToSyncQueue({
+          type: 'homestay-like',
+          data: {
+            homestayId,
+            liked: action === 'like',
+            likeCount: homestayList.value[index]?.likes || 0
+          }
+        })
+        
         return response.data
       } else {
         throw new Error(response?.msg || '操作失败')
@@ -372,6 +450,16 @@ export const useHomestayStore = defineStore('homestay', () => {
             homestayList.value[index].isCollected = false
           }
         }
+        
+        // 通知状态同步
+        stateSyncStore.addToSyncQueue({
+          type: 'homestay-collect',
+          data: {
+            homestayId,
+            collected: action === 'collect'
+          }
+        })
+        
         return response.data
       } else {
         throw new Error(response?.msg || '操作失败')
@@ -528,6 +616,12 @@ export const useHomestayStore = defineStore('homestay', () => {
     processedHomestayList,
     filteredList,
     favoriteIds,
+    
+    // Virtual List
+    virtualListConfig,
+    createVirtualListInstance,
+    debouncedLoadMore,
+    throttledRefresh,
     
     // Actions
     setHomestayList,

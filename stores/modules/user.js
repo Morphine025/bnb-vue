@@ -9,11 +9,15 @@ import { ref, computed } from 'vue'
 import { API } from '../../api'
 import { useLoadingStore } from './loading'
 import { useCacheStore } from './cache'
+import { useStateSyncStore } from './state-sync'
+import { useValidationStore } from './validation'
 
 export const useUserStore = defineStore('user', () => {
   // 使用统一的loading管理
   const loadingStore = useLoadingStore()
   const cacheStore = useCacheStore()
+  const stateSyncStore = useStateSyncStore()
+  const validationStore = useValidationStore()
   
   // 用户基本信息
   const userInfo = ref(null)
@@ -85,21 +89,21 @@ export const useUserStore = defineStore('user', () => {
       const cachedData = cacheStore.getCache(cacheKey, { dataType: 'user-info' })
       if (cachedData) {
         console.log('✅ 使用缓存的用户信息')
-        setUserInfo(cachedData)
-        return cachedData
+        // 验证缓存数据
+        const validatedData = validationStore.validateUserInfo(cachedData)
+        setUserInfo(validatedData)
+        return validatedData
       }
       
       const response = await API.user.getInfo()
-      if (response && response.code === 1) {
-        setUserInfo(response.data)
-        
-        // 缓存用户信息
-        cacheStore.setCache(cacheKey, response.data, { dataType: 'user-info' })
-        
-        return response.data
-      } else {
-        throw new Error(response?.msg || '获取用户信息失败')
-      }
+      // 验证API响应数据
+      const validatedData = validationStore.validateApiResponseData(response, 'userInfo')
+      setUserInfo(validatedData)
+      
+      // 缓存验证后的用户信息
+      cacheStore.setCache(cacheKey, validatedData, { dataType: 'user-info' })
+      console.log('✅ 用户信息获取并验证成功')
+      return validatedData
     } catch (error) {
       console.error('获取用户信息失败:', error)
       setLoginStatus({ loginError: error.message })
@@ -169,6 +173,12 @@ export const useUserStore = defineStore('user', () => {
           lastLoginTime: new Date().toISOString() 
         })
         
+        // 通知状态同步
+        stateSyncStore.addToSyncQueue({
+          type: 'user-login',
+          data: userData
+        })
+        
         return userData
       } else {
         throw new Error(response?.msg || '登录失败')
@@ -202,6 +212,12 @@ export const useUserStore = defineStore('user', () => {
     // 清除本地存储
     uni.removeStorageSync('token')
     uni.removeStorageSync('userInfo')
+    
+    // 通知状态同步
+    stateSyncStore.addToSyncQueue({
+      type: 'user-logout',
+      data: { timestamp: Date.now() }
+    })
   }
   
   // 初始化用户数据

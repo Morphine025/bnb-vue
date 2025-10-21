@@ -21,7 +21,8 @@ utils/
 │   └── dataValidator.js    # 数据验证工具
 ├── performance/             # 性能相关工具
 │   ├── performanceMonitor.js # 性能监控工具
-│   └── debounce.js         # 防抖节流工具
+│   ├── debounce.js         # 防抖节流工具
+│   └── virtualList.js      # 虚拟滚动工具
 ├── api/                    # API相关工具
 │   └── apiUtils.js         # 统一错误处理工具
 ├── cache/                  # 缓存相关工具
@@ -71,6 +72,15 @@ const result = await measure('api_call', async () => {
 - **主要方法**:
   - `debounce(func, wait)`: 防抖函数
   - `throttle(func, wait)`: 节流函数
+  - `smartDebounce(func, type)`: 智能防抖
+  - `smartThrottle(func, type)`: 智能节流
+
+#### virtualList.js
+- **功能**: 虚拟滚动工具，处理大数据量列表
+- **主要方法**:
+  - `createVirtualList(items, config)`: 创建虚拟列表
+  - `useVirtualList(items, config)`: Vue 3 Hook
+  - `createVirtualListConfig(options)`: 创建配置
 
 ### 2. 缓存相关工具 (cache/)
 

@@ -85,29 +85,110 @@ export const useCacheStore = defineStore('cache', () => {
     offlineQueue.value.length
   )
 
-  // Actions
+  // ==================== Actions ====================
+  
+  /**
+   * 设置缓存配置
+   * @description 更新缓存配置参数，支持动态调整缓存策略
+   * @param {Object} config - 新的缓存配置
+   * @param {Object} config.shortTerm - 短期缓存配置
+   * @param {Object} config.mediumTerm - 中期缓存配置
+   * @param {Object} config.longTerm - 长期缓存配置
+   * @param {boolean} config.enableOffline - 是否启用离线缓存
+   * @param {boolean} config.enableCompression - 是否启用数据压缩
+   * @example
+   * ```javascript
+   * cacheStore.setCacheConfig({
+   *   shortTerm: { maxAge: 5 * 60 * 1000, maxSize: 5 * 1024 * 1024 },
+   *   enableOffline: true
+   * })
+   * ```
+   */
   const setCacheConfig = (config) => {
     cacheConfig.value = { ...cacheConfig.value, ...config }
+    console.log('✅ 缓存配置已更新:', config)
   }
 
+  /**
+   * 设置缓存数据
+   * @description 使用分层缓存策略设置缓存数据，支持不同数据类型的缓存策略
+   * @param {string} key - 缓存键名
+   * @param {*} data - 要缓存的数据
+   * @param {Object} options - 缓存选项
+   * @param {string} options.dataType - 数据类型（shortTerm/mediumTerm/longTerm）
+   * @param {number} options.maxAge - 最大缓存时间（毫秒）
+   * @param {number} options.maxSize - 最大缓存大小（字节）
+   * @param {string} options.priority - 缓存优先级（high/medium/low）
+   * @returns {boolean} 是否设置成功
+   * @example
+   * ```javascript
+   * // 设置短期缓存
+   * cacheStore.setCache('user-info', userData, { 
+   *   dataType: 'shortTerm',
+   *   maxAge: 5 * 60 * 1000 
+   * })
+   * 
+   * // 设置长期缓存
+   * cacheStore.setCache('static-config', configData, { 
+   *   dataType: 'longTerm',
+   *   maxAge: 24 * 60 * 60 * 1000 
+   * })
+   * ```
+   */
   const setCache = (key, data, options = {}) => {
     try {
       // 使用分层缓存策略
       const dataType = options.dataType || 'default'
-      return cacheStrategyStore.setCache(key, data, dataType, options)
+      const result = cacheStrategyStore.setCache(key, data, dataType, options)
+      
+      if (result) {
+        console.log(`✅ 缓存设置成功: ${key} (${dataType})`)
+      } else {
+        console.warn(`⚠️ 缓存设置失败: ${key} (${dataType})`)
+      }
+      
+      return result
     } catch (error) {
-      console.error('设置缓存失败:', error)
+      console.error('❌ 设置缓存失败:', error)
       return false
     }
   }
 
+  /**
+   * 获取缓存数据
+   * @description 从分层缓存中获取数据，支持不同数据类型的缓存策略
+   * @param {string} key - 缓存键名
+   * @param {Object} options - 获取选项
+   * @param {string} options.dataType - 数据类型（shortTerm/mediumTerm/longTerm）
+   * @param {boolean} options.refresh - 是否刷新缓存时间
+   * @returns {*} 缓存的数据，如果不存在则返回null
+   * @example
+   * ```javascript
+   * // 获取短期缓存
+   * const userInfo = cacheStore.getCache('user-info', { dataType: 'shortTerm' })
+   * 
+   * // 获取长期缓存并刷新时间
+   * const config = cacheStore.getCache('static-config', { 
+   *   dataType: 'longTerm',
+   *   refresh: true 
+   * })
+   * ```
+   */
   const getCache = (key, options = {}) => {
     try {
       // 使用分层缓存策略
       const dataType = options.dataType || 'default'
-      return cacheStrategyStore.getCache(key, dataType, options)
+      const result = cacheStrategyStore.getCache(key, dataType, options)
+      
+      if (result !== null) {
+        console.log(`✅ 缓存命中: ${key} (${dataType})`)
+      } else {
+        console.log(`❌ 缓存未命中: ${key} (${dataType})`)
+      }
+      
+      return result
     } catch (error) {
-      console.error('获取缓存失败:', error)
+      console.error('❌ 获取缓存失败:', error)
       return null
     }
   }

@@ -259,12 +259,14 @@ describe('User API', () => {
 })
 ```
 
-### Mock数据
+### 缓存策略
 
 ```javascript
-// 开发环境可以使用Mock数据
-if (process.env.NODE_ENV === 'development') {
-  // 使用Mock数据
+// 使用分层缓存策略
+const cacheConfig = {
+  shortTerm: { maxAge: 5 * 60 * 1000, maxSize: 10 * 1024 * 1024 },
+  mediumTerm: { maxAge: 60 * 60 * 1000, maxSize: 50 * 1024 * 1024 },
+  longTerm: { maxAge: 24 * 60 * 60 * 1000, maxSize: 100 * 1024 * 1024 }
 }
 ```
 
@@ -355,6 +357,8 @@ console.log('Loading状态:', getLoadingStatus())
 - **v1.9.0**: 统一搜索功能，将民宿搜索迁移到HomestayAPI
 - **v1.10.0**: 统一地区功能，将地区搜索和树形结构迁移到RegionAPI
 - **v1.11.0**: 统一用户数据功能，将用户民宿数据迁移到UserAPI
+- **v1.12.0**: 移除Mock数据支持，优化缓存策略
+- **v1.13.0**: 添加分层缓存和性能优化
 
 ## 🔄 迁移指南
 

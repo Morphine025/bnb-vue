@@ -17,6 +17,12 @@ export { useLoadingStore } from './modules/loading'
 // 缓存策略管理
 export { useCacheStrategyStore } from './modules/cache-strategy'
 
+// 状态同步管理
+export { useStateSyncStore } from './modules/state-sync'
+
+// 数据验证管理
+export { useValidationStore } from './modules/validation'
+
 // 民宿相关Store
 export { useHomestayListStore } from './modules/homestay/list'
 export { useHomestayDetailStore } from './modules/homestay/detail'
