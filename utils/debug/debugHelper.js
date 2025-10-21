@@ -106,26 +106,19 @@ export function diagnoseDataFlow(homestayStore, pageData) {
 }
 
 /**
- * 性能分析
+ * 简化性能分析
  * @param {string} operation - 操作名称
  * @param {Function} fn - 要分析的函数
  */
 export async function analyzePerformance(operation, fn) {
-  const startTime = performance.now()
-  const startMemory = performance.memory?.usedJSHeapSize || 0
+  console.time(operation)
   
   try {
     const result = await fn()
-    
-    const endTime = performance.now()
-    const endMemory = performance.memory?.usedJSHeapSize || 0
-    
-    console.log(`📊 性能分析 - ${operation}:`)
-    console.log(`   执行时间: ${(endTime - startTime).toFixed(2)}ms`)
-    console.log(`   内存变化: ${((endMemory - startMemory) / 1024 / 1024).toFixed(2)}MB`)
-    
+    console.timeEnd(operation)
     return result
   } catch (error) {
+    console.timeEnd(operation)
     console.error(`❌ 性能分析失败 - ${operation}:`, error)
     throw error
   }

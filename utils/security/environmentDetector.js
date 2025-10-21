@@ -13,7 +13,7 @@ export const isLocalDevelopment = () => {
   const isNodeDev = process.env.NODE_ENV === 'development'
   
   // 检查是否为微信小程序开发工具
-  const isWechatDevTools = typeof wx !== 'undefined' && (wx.getWindowInfo || wx.getSystemInfoSync)
+  const isWechatDevTools = typeof wx !== 'undefined' && (wx.getWindowInfo || wx.getDeviceInfo || wx.getAppBaseInfo)
   
   // 检查是否为H5开发环境
   const isH5Dev = typeof window !== 'undefined' && window.location.hostname === 'localhost'

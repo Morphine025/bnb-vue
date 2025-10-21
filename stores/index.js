@@ -14,18 +14,13 @@ export const pinia = createPinia()
 // 统一Loading管理
 export { useLoadingStore } from './modules/loading'
 
-// 缓存策略管理
-export { useCacheStrategyStore } from './modules/cache-strategy'
+// 缓存策略管理 - 已合并到cache.js中
 
-// 状态同步管理
-export { useStateSyncStore } from './modules/state-sync'
+// 状态同步管理 - 已简化，移除复杂的状态同步机制
 
-// 数据验证管理
-export { useValidationStore } from './modules/validation'
+// 数据验证管理 - 已合并到工具函数中
 
-// 民宿相关Store
-export { useHomestayListStore } from './modules/homestay/list'
-export { useHomestayDetailStore } from './modules/homestay/detail'
+// 民宿相关Store - 已合并到主homestay模块中
 export { useHomestayFilterStore } from './modules/homestay/filter'
 export { useHomestayFavoritesStore } from './modules/homestay/favorites'
 
@@ -49,4 +44,3 @@ export { useMessageStore } from './modules/message'
 // 兼容性导出 - 保持向后兼容
 export { useHomestayStore } from './modules/homestay'
 export { useUserStore } from './modules/user'
-export { useSearchStore as useSearchStoreOld } from './modules/search'

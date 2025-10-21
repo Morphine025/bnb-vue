@@ -6,19 +6,18 @@
 
 /**
  * 开始计时
- * @returns {number} 开始时间戳
+ * @param {string} name - 计时器名称
  */
-export const startTimer = () => {
-  return Date.now()
+export const startTimer = (name) => {
+  console.time(name)
 }
 
 /**
  * 结束计时
- * @param {number} startTime - 开始时间戳
- * @returns {number} 执行时间（毫秒）
+ * @param {string} name - 计时器名称
  */
-export const endTimer = (startTime) => {
-  return Date.now() - startTime
+export const endTimer = (name) => {
+  console.timeEnd(name)
 }
 
 /**
@@ -33,21 +32,14 @@ export const endTimer = (startTime) => {
  * })
  */
 export const measure = async (name, fn) => {
-  const startTime = startTimer()
+  startTimer(name)
   
   try {
     const result = await fn()
-    const duration = endTimer(startTime)
-    
-    // 开发环境下输出日志
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`⏱️ ${name}: ${duration}ms`)
-    }
-    
+    endTimer(name)
     return result
   } catch (error) {
-    const duration = endTimer(startTime)
-    console.error(`❌ ${name} failed after ${duration}ms:`, error)
+    endTimer(name)
     throw error
   }
 }

@@ -1,629 +1,170 @@
 /**
  * 简化用户信息管理工具
- * 功能描述：提供基础的用户信息管理功能，避免过度设计
+ * 功能描述：提供基础的用户信息管理功能
  */
 
-// 导入API接口 - 使用新的统一API
+// 导入API接口
 import { UserAPI } from "../../api/modules/UserAPI.js";
-import { handleError } from '../error/errorHandler.js'
-import { ErrorTypes, ErrorOptions } from '../error/errorTypes.js'
 
 /**
- * 参数验证工具
- * @param {any} value - 要验证的值
- * @param {string} name - 参数名
- * @param {string} type - 期望类型
- * @param {Object} options - 验证选项
- * @throws {Error} 参数验证失败时抛出错误
- */
-const validateParam = (value, name, type, options = {}) => {
-  try {
-    if (value === null || value === undefined) {
-      const error = new Error(`参数 ${name} 不能为空`)
-      error.type = ErrorTypes.VALIDATION_ERROR
-      error.code = 'INVALID_PARAM'
-      
-      const businessContext = {
-        module: 'UserInfo',
-        layer: 'Business',
-        field: 'validateParam',
-        paramName: name,
-        paramType: type,
-        paramValue: value
-      }
-      
-      const errorOptions = {
-        [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-        [ErrorOptions.LOG_ERROR]: true,
-        [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-        [ErrorOptions.RETRY_ENABLED]: false,
-        customMessage: `参数 ${name} 不能为空`
-      }
-      
-      handleError(error, businessContext, errorOptions)
-      throw error
-    }
-
-    if (
-      type === "object" &&
-      (typeof value !== "object" || Array.isArray(value))
-    ) {
-      const error = new Error(`参数 ${name} 必须是对象类型`)
-      error.type = ErrorTypes.VALIDATION_ERROR
-      error.code = 'INVALID_PARAM_TYPE'
-      
-      const businessContext = {
-        module: 'UserInfo',
-        layer: 'Business',
-        field: 'validateParam',
-        paramName: name,
-        paramType: type,
-        paramValue: value
-      }
-      
-      const errorOptions = {
-        [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-        [ErrorOptions.LOG_ERROR]: true,
-        [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-        [ErrorOptions.RETRY_ENABLED]: false,
-        customMessage: `参数 ${name} 必须是对象类型`
-      }
-      
-      handleError(error, businessContext, errorOptions)
-      throw error
-    }
-
-    if (type === "string" && typeof value !== "string") {
-      const error = new Error(`参数 ${name} 必须是字符串类型`)
-      error.type = ErrorTypes.VALIDATION_ERROR
-      error.code = 'INVALID_PARAM_TYPE'
-      
-      const businessContext = {
-        module: 'UserInfo',
-        layer: 'Business',
-        field: 'validateParam',
-        paramName: name,
-        paramType: type,
-        paramValue: value
-      }
-      
-      const errorOptions = {
-        [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-        [ErrorOptions.LOG_ERROR]: true,
-        [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-        [ErrorOptions.RETRY_ENABLED]: false,
-        customMessage: `参数 ${name} 必须是字符串类型`
-      }
-      
-      handleError(error, businessContext, errorOptions)
-      throw error
-    }
-
-    if (type === "function" && typeof value !== "function") {
-      const error = new Error(`参数 ${name} 必须是函数类型`)
-      error.type = ErrorTypes.VALIDATION_ERROR
-      error.code = 'INVALID_PARAM_TYPE'
-      
-      const businessContext = {
-        module: 'UserInfo',
-        layer: 'Business',
-        field: 'validateParam',
-        paramName: name,
-        paramType: type,
-        paramValue: value
-      }
-      
-      const errorOptions = {
-        [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-        [ErrorOptions.LOG_ERROR]: true,
-        [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-        [ErrorOptions.RETRY_ENABLED]: false,
-        customMessage: `参数 ${name} 必须是函数类型`
-      }
-      
-      handleError(error, businessContext, errorOptions)
-      throw error
-    }
-  } catch (error) {
-    const businessContext = {
-      module: 'UserInfo',
-      layer: 'Business',
-      field: 'validateParam',
-      paramName: name,
-      paramType: type,
-      paramValue: value
-    }
-    
-    const errorOptions = {
-      [ErrorOptions.SHOW_TOAST]: false,
-      [ErrorOptions.LOG_ERROR]: true,
-      [ErrorOptions.REPORT_ERROR]: true,
-      [ErrorOptions.RETRY_ENABLED]: false,
-      customMessage: '参数验证过程出错'
-    }
-    
-    handleError(error, businessContext, errorOptions)
-    throw error
-  }
-};
-
-/**
- * 创建简化用户信息管理器
+ * 创建简化的用户信息管理器
  * @param {Object} apiClient - API客户端
- * @param {string} storageKey - 本地存储键名
+ * @param {string} storageKey - 存储键名
  * @returns {Object} 用户信息管理器
- * @throws {Error} 参数验证失败时抛出错误
- * @example
- * // 创建用户信息管理器
- * const userInfoManager = createSimpleUserInfoManager({
- *   getInfo: UserAPI.getInfo,
- *   updateInfo: UserAPI.updateInfo
- * }, 'userInfo')
- * const userInfo = await userInfoManager.refreshUserInfo()
  */
-export const createSimpleUserInfoManager = (
-  apiClient,
-  storageKey = "userInfo"
-) => {
-  // 参数验证
-  validateParam(apiClient, "apiClient", "object");
-  validateParam(storageKey, "storageKey", "string");
-
-  if (!apiClient.getInfo || typeof apiClient.getInfo !== "function") {
-    const error = new Error("apiClient 必须包含 getInfo 静态方法")
-    error.type = ErrorTypes.VALIDATION_ERROR
-    error.code = 'INVALID_API_CLIENT'
-    
-    const businessContext = {
-      module: 'UserInfo',
-      layer: 'Business',
-      field: 'createSimpleUserInfoManager',
-      apiClient: apiClient
-    }
-    
-    const errorOptions = {
-      [ErrorOptions.SHOW_TOAST]: false,
-      [ErrorOptions.LOG_ERROR]: true,
-      [ErrorOptions.REPORT_ERROR]: true,
-      [ErrorOptions.RETRY_ENABLED]: false,
-      customMessage: 'apiClient 必须包含 getInfo 静态方法'
-    }
-    
-    handleError(error, businessContext, errorOptions)
-    throw error
-  }
-
-  if (!apiClient.updateInfo || typeof apiClient.updateInfo !== "function") {
-    const error = new Error("apiClient 必须包含 updateInfo 静态方法")
-    error.type = ErrorTypes.VALIDATION_ERROR
-    error.code = 'INVALID_API_CLIENT'
-    
-    const businessContext = {
-      module: 'UserInfo',
-      layer: 'Business',
-      field: 'createSimpleUserInfoManager',
-      apiClient: apiClient
-    }
-    
-    const errorOptions = {
-      [ErrorOptions.SHOW_TOAST]: false,
-      [ErrorOptions.LOG_ERROR]: true,
-      [ErrorOptions.REPORT_ERROR]: true,
-      [ErrorOptions.RETRY_ENABLED]: false,
-      customMessage: 'apiClient 必须包含 updateInfo 静态方法'
-    }
-    
-    handleError(error, businessContext, errorOptions)
-    throw error
-  }
-  // 公共错误处理方法
-  const handleUserError = (error, operation, context = {}) => {
-    const businessContext = {
-      module: 'UserInfo',
-      layer: 'Business',
-      field: operation,
-      ...context
-    }
-    
-    const errorOptions = {
-      [ErrorOptions.SHOW_TOAST]: true,
-      [ErrorOptions.LOG_ERROR]: true,
-      [ErrorOptions.REPORT_ERROR]: true,
-      [ErrorOptions.RETRY_ENABLED]: false,
-      customMessage: `${operation}失败`
-    }
-    
-    handleError(error, businessContext, errorOptions)
-    throw error
-  }
-
-  // 公共数据验证方法
-  const validateUserData = (userData, options = {}) => {
-    try {
-      if (!userData) {
-        const error = new Error("用户信息为空")
-        error.type = ErrorTypes.VALIDATION_ERROR
-        error.code = 'INVALID_USER_DATA'
-        
-        const businessContext = {
-          module: 'UserInfo',
-          layer: 'Business',
-          field: 'validateUserData',
-          userData: userData
-        }
-        
-        const errorOptions = {
-          [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-          [ErrorOptions.LOG_ERROR]: true,
-          [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-          [ErrorOptions.RETRY_ENABLED]: false,
-          customMessage: '用户信息为空'
-        }
-        
-        handleError(error, businessContext, errorOptions)
-        throw error
-      }
-      return userData
-    } catch (error) {
-      const businessContext = {
-        module: 'UserInfo',
-        layer: 'Business',
-        field: 'validateUserData',
-        userData: userData
-      }
-      
-      const errorOptions = {
-        [ErrorOptions.SHOW_TOAST]: false,
-        [ErrorOptions.LOG_ERROR]: true,
-        [ErrorOptions.REPORT_ERROR]: true,
-        [ErrorOptions.RETRY_ENABLED]: false,
-        customMessage: '用户数据验证过程出错'
-      }
-      
-      handleError(error, businessContext, errorOptions)
-      throw error
-    }
-  }
-
-  // 公共API调用方法
-  const callApi = async (apiMethod, operation, options = {}) => {
-    try {
-      const response = await apiMethod()
-      return response.data || response
-    } catch (error) {
-      const businessContext = {
-        module: 'UserInfo',
-        layer: 'Business',
-        field: 'callApi',
-        operation: operation
-      }
-      
-      const errorOptions = {
-        [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-        [ErrorOptions.LOG_ERROR]: true,
-        [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-        [ErrorOptions.RETRY_ENABLED]: options.retryEnabled || false,
-        customMessage: `${operation}失败`
-      }
-      
-      handleError(error, businessContext, errorOptions)
-      throw error
-    }
-  }
-
+export const createSimpleUserInfoManager = (apiClient, storageKey = 'userInfo') => {
   return {
     /**
      * 刷新用户信息
-     * @param {Object} options - 选项
      * @returns {Promise<Object>} 用户信息
      */
-    async refreshUserInfo(options = {}) {
+    async refreshUserInfo() {
       try {
-        const userData = await callApi(() => apiClient.getInfo(), "获取用户信息", options)
-        validateUserData(userData, options)
-        this.saveToStorage(userData, options)
-        return userData
+        const userInfo = await apiClient.getInfo()
+        if (userInfo) {
+          uni.setStorageSync(storageKey, JSON.stringify(userInfo))
+        }
+        return userInfo
       } catch (error) {
-        const businessContext = {
-          module: 'UserInfo',
-          layer: 'Business',
-          field: 'refreshUserInfo'
-        }
-        
-        const errorOptions = {
-          [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-          [ErrorOptions.LOG_ERROR]: true,
-          [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-          [ErrorOptions.RETRY_ENABLED]: options.retryEnabled || false,
-          customMessage: '刷新用户信息失败'
-        }
-        
-        handleError(error, businessContext, errorOptions)
+        console.error('获取用户信息失败:', error)
         throw error
       }
     },
 
     /**
      * 获取本地用户信息
-     * @param {Object} options - 选项
-     * @returns {Promise<Object>} 用户信息
+     * @returns {Object|null} 用户信息
      */
-    async getLocalUserInfo(options = {}) {
+    getLocalUserInfo() {
       try {
-        const localData = uni.getStorageSync(storageKey)
-        if (localData) {
-          return JSON.parse(localData)
-        }
-
-        // 本地没有信息，从服务器获取
-        return await this.refreshUserInfo(options)
+        const userInfo = uni.getStorageSync(storageKey)
+        return userInfo ? JSON.parse(userInfo) : null
       } catch (error) {
-        const businessContext = {
-          module: 'UserInfo',
-          layer: 'Business',
-          field: 'getLocalUserInfo'
-        }
-        
-        const errorOptions = {
-          [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-          [ErrorOptions.LOG_ERROR]: true,
-          [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-          [ErrorOptions.RETRY_ENABLED]: options.retryEnabled || false,
-          customMessage: '获取本地用户信息失败'
-        }
-        
-        handleError(error, businessContext, errorOptions)
-        throw error
+        console.error('获取本地用户信息失败:', error)
+        return null
       }
     },
 
     /**
      * 更新用户信息
-     * @param {Object} userInfo - 用户信息
-     * @param {Object} options - 选项
-     * @returns {Promise<Object>} 更新后的用户信息
+     * @param {Object} userData - 用户数据
+     * @returns {Promise<Object>} 更新结果
      */
-    async updateUserInfo(userInfo, options = {}) {
+    async updateUserInfo(userData) {
       try {
-        validateParam(userInfo, "userInfo", "object", options)
-        const updatedData = await callApi(
-          () => apiClient.updateInfo(userInfo),
-          "更新用户信息",
-          options
-        )
-        this.saveToStorage(updatedData, options)
-        console.log("用户信息已更新:", updatedData)
-        return updatedData
+        const result = await apiClient.updateInfo(userData)
+        if (result) {
+          uni.setStorageSync(storageKey, JSON.stringify(result))
+        }
+        return result
       } catch (error) {
-        const businessContext = {
-          module: 'UserInfo',
-          layer: 'Business',
-          field: 'updateUserInfo',
-          userInfo: userInfo
-        }
-        
-        const errorOptions = {
-          [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-          [ErrorOptions.LOG_ERROR]: true,
-          [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-          [ErrorOptions.RETRY_ENABLED]: options.retryEnabled || false,
-          customMessage: '更新用户信息失败'
-        }
-        
-        handleError(error, businessContext, errorOptions)
+        console.error('更新用户信息失败:', error)
         throw error
       }
     },
 
     /**
-     * 保存用户信息到本地存储
-     * @param {Object} userInfo - 用户信息
-     * @param {Object} options - 选项
+     * 清除用户信息
      */
-    saveToStorage(userInfo, options = {}) {
-      try {
-        validateUserData(userInfo, { ...options, handleErrors: false })
-        uni.setStorageSync(storageKey, JSON.stringify(userInfo))
-      } catch (error) {
-        const businessContext = {
-          module: 'UserInfo',
-          layer: 'Business',
-          field: 'saveToStorage',
-          userInfo: userInfo
-        }
-        
-        const errorOptions = {
-          [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-          [ErrorOptions.LOG_ERROR]: true,
-          [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-          [ErrorOptions.RETRY_ENABLED]: false,
-          customMessage: '保存用户信息到本地存储失败'
-        }
-        
-        handleError(error, businessContext, errorOptions)
-        throw error
-      }
-    },
-
-    /**
-     * 清除本地用户信息
-     * @param {Object} options - 选项
-     */
-    clearUserInfo(options = {}) {
-      try {
-        uni.removeStorageSync(storageKey)
-        console.log("本地用户信息已清除")
-      } catch (error) {
-        const businessContext = {
-          module: 'UserInfo',
-          layer: 'Business',
-          field: 'clearUserInfo'
-        }
-        
-        const errorOptions = {
-          [ErrorOptions.SHOW_TOAST]: options.showToast !== false,
-          [ErrorOptions.LOG_ERROR]: true,
-          [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-          [ErrorOptions.RETRY_ENABLED]: false,
-          customMessage: '清除本地用户信息失败'
-        }
-        
-        handleError(error, businessContext, errorOptions)
-        throw error
-      }
-    },
-
-    /**
-     * 检查用户是否已登录
-     * @param {Object} options - 选项
-     * @returns {boolean} 是否已登录
-     */
-    isLoggedIn(options = {}) {
-      try {
-        const localData = uni.getStorageSync(storageKey)
-        return !!localData
-      } catch (error) {
-        const businessContext = {
-          module: 'UserInfo',
-          layer: 'Business',
-          field: 'isLoggedIn'
-        }
-        
-        const errorOptions = {
-          [ErrorOptions.SHOW_TOAST]: false,
-          [ErrorOptions.LOG_ERROR]: true,
-          [ErrorOptions.REPORT_ERROR]: options.reportError || false,
-          [ErrorOptions.RETRY_ENABLED]: false,
-          customMessage: '检查登录状态失败'
-        }
-        
-        handleError(error, businessContext, errorOptions)
-        return false
-      }
-    },
-  };
-};
-
-// 创建默认的用户信息管理器
-const userInfoManager = createSimpleUserInfoManager(
-  {
-    getInfo: UserAPI.getInfo,
-    updateInfo: UserAPI.updateInfo,
-  },
-  "userInfo"
-);
-
-// 为了保持向后兼容，导出原有的函数（内部使用新的管理器）
-export const refreshUserInfo = () => userInfoManager.refreshUserInfo();
-export const getLocalUserInfo = () => userInfoManager.getLocalUserInfo();
-export const updateLocalUserInfo = (userInfo) =>
-  userInfoManager.saveToStorage(userInfo);
+    clearUserInfo() {
+      uni.removeStorageSync(storageKey)
+    }
+  }
+}
 
 /**
- * 清理用户信息
- * @description 清理和验证用户信息数据，移除敏感信息和无效数据
- * @param {Object} userInfo - 用户信息对象
- * @param {Object} options - 清理选项
- * @returns {Object} 清理后的用户信息
- * 
- * @example
- * ```javascript
- * const cleanUserInfo = sanitizeUserInfo({
- *   nickname: '  <script>alert("xss")</script>  ',
- *   bio: 'Hello &lt;b&gt;World&lt;/b&gt;',
- *   email: 'user@example.com'
- * })
- * ```
+ * 默认用户信息管理器
  */
-export const sanitizeUserInfo = (userInfo, options = {}) => {
+export const userInfoManager = createSimpleUserInfoManager({
+  getInfo: UserAPI.getInfo,
+  updateInfo: UserAPI.updateInfo
+}, 'userInfo')
+
+/**
+ * 刷新用户信息
+ * @returns {Promise<Object>} 用户信息
+ */
+export const refreshUserInfo = () => userInfoManager.refreshUserInfo()
+
+/**
+ * 获取本地用户信息
+ * @returns {Object|null} 用户信息
+ */
+export const getLocalUserInfo = () => userInfoManager.getLocalUserInfo()
+
+/**
+ * 清理和验证用户信息
+ * @param {Object} userInfo - 原始用户信息
+ * @returns {Object} 清理后的用户信息
+ */
+export const sanitizeUserInfo = (userInfo) => {
   if (!userInfo || typeof userInfo !== 'object') {
     return {}
   }
-  
-  const defaultOptions = {
-    removeEmpty: true,
-    trimStrings: true,
-    sanitizeHtml: true,
-    maxLength: {
-      nickname: 50,
-      bio: 200,
-      location: 100
-    }
-  }
-  
-  const mergedOptions = { ...defaultOptions, ...options }
+
   const sanitized = {}
   
-  // 清理昵称
-  if (userInfo.nickname) {
-    let nickname = String(userInfo.nickname)
-    if (mergedOptions.trimStrings) {
-      nickname = nickname.trim()
-    }
-    if (mergedOptions.sanitizeHtml) {
-      nickname = nickname.replace(/<[^>]*>/g, '').replace(/[<>]/g, '')
-    }
-    if (nickname.length <= mergedOptions.maxLength.nickname) {
-      sanitized.nickname = nickname
-    }
-  }
-  
-  // 清理个人简介
-  if (userInfo.bio) {
-    let bio = String(userInfo.bio)
-    if (mergedOptions.trimStrings) {
-      bio = bio.trim()
-    }
-    if (mergedOptions.sanitizeHtml) {
-      bio = bio.replace(/<[^>]*>/g, '').replace(/[<>]/g, '')
-    }
-    if (bio.length <= mergedOptions.maxLength.bio) {
-      sanitized.bio = bio
-    }
-  }
-  
-  // 清理位置信息
-  if (userInfo.location) {
-    let location = String(userInfo.location)
-    if (mergedOptions.trimStrings) {
-      location = location.trim()
-    }
-    if (mergedOptions.sanitizeHtml) {
-      location = location.replace(/<[^>]*>/g, '').replace(/[<>]/g, '')
-    }
-    if (location.length <= mergedOptions.maxLength.location) {
-      sanitized.location = location
-    }
-  }
-  
-  // 清理头像URL
-  if (userInfo.avatar) {
-    const avatar = String(userInfo.avatar).trim()
-    // 简单的URL验证
-    if (avatar.match(/^https?:\/\/.+/)) {
-      sanitized.avatar = avatar
-    }
-  }
-  
-  // 保留其他安全字段
-  const safeFields = ['id', 'userId', 'email', 'phone', 'gender', 'birthday']
-  safeFields.forEach(field => {
-    if (userInfo[field] !== undefined) {
-      sanitized[field] = userInfo[field]
+  // 清理字符串字段，移除前后空格和特殊字符
+  const stringFields = ['nickname', 'username', 'email', 'phone', 'avatar', 'bio', 'location']
+  stringFields.forEach(field => {
+    if (userInfo[field] !== undefined && userInfo[field] !== null) {
+      let value = String(userInfo[field]).trim()
+      
+      // 移除潜在的XSS字符
+      value = value.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      value = value.replace(/javascript:/gi, '')
+      value = value.replace(/on\w+\s*=/gi, '')
+      
+      // 限制长度
+      if (field === 'nickname' || field === 'username') {
+        value = value.substring(0, 50)
+      } else if (field === 'bio') {
+        value = value.substring(0, 200)
+      } else if (field === 'email') {
+        value = value.substring(0, 100)
+      } else if (field === 'phone') {
+        value = value.substring(0, 20)
+      }
+      
+      sanitized[field] = value
     }
   })
   
-  // 移除空值
-  if (mergedOptions.removeEmpty) {
-    Object.keys(sanitized).forEach(key => {
-      if (sanitized[key] === '' || sanitized[key] === null || sanitized[key] === undefined) {
-        delete sanitized[key]
+  // 清理数字字段
+  const numberFields = ['age', 'gender']
+  numberFields.forEach(field => {
+    if (userInfo[field] !== undefined && userInfo[field] !== null) {
+      const value = Number(userInfo[field])
+      if (!isNaN(value) && value >= 0) {
+        sanitized[field] = value
       }
-    })
+    }
+  })
+  
+  // 清理布尔字段
+  const booleanFields = ['isVerified', 'isActive']
+  booleanFields.forEach(field => {
+    if (userInfo[field] !== undefined && userInfo[field] !== null) {
+      sanitized[field] = Boolean(userInfo[field])
+    }
+  })
+  
+  // 清理日期字段
+  if (userInfo.birthday) {
+    const date = new Date(userInfo.birthday)
+    if (!isNaN(date.getTime())) {
+      sanitized.birthday = date.toISOString().split('T')[0] // 只保留日期部分
+    }
   }
+  
+  // 保留其他有效字段（排除函数和复杂对象）
+  Object.keys(userInfo).forEach(key => {
+    if (!sanitized.hasOwnProperty(key) && 
+        typeof userInfo[key] !== 'function' && 
+        typeof userInfo[key] !== 'object') {
+      sanitized[key] = userInfo[key]
+    }
+  })
   
   return sanitized
 }
-
-// 导出新的管理器
-export { userInfoManager };

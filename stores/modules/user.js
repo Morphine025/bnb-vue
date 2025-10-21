@@ -9,15 +9,13 @@ import { ref, computed } from 'vue'
 import { API } from '../../api'
 import { useLoadingStore } from './loading'
 import { useCacheStore } from './cache'
-import { useStateSyncStore } from './state-sync'
-import { useValidationStore } from './validation'
+import { validate, validateApiResponse, validateUserId, validatePhone, validateEmail } from '../../utils/security/dataValidator'
 
 export const useUserStore = defineStore('user', () => {
   // 使用统一的loading管理
   const loadingStore = useLoadingStore()
   const cacheStore = useCacheStore()
-  const stateSyncStore = useStateSyncStore()
-  const validationStore = useValidationStore()
+  // 验证功能已合并到工具函数中
   
   // 用户基本信息
   const userInfo = ref(null)
@@ -90,20 +88,37 @@ export const useUserStore = defineStore('user', () => {
       if (cachedData) {
         console.log('✅ 使用缓存的用户信息')
         // 验证缓存数据
-        const validatedData = validationStore.validateUserInfo(cachedData)
-        setUserInfo(validatedData)
-        return validatedData
+        const userInfoRules = {
+          userId: { required: true, type: 'string' },
+          nickName: { required: true, type: 'string', maxLength: 20 },
+          avatarUrl: { type: 'string', pattern: /^https?:\/\/.+/ },
+          phone: { type: 'string', pattern: /^1[3-9]\d{9}$/ },
+          email: { type: 'string', pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/ },
+          isVip: { type: 'boolean' },
+          level: { type: 'number', min: 0, max: 10 }
+        }
+        const validationResult = validate(cachedData, userInfoRules)
+        if (validationResult.isValid) {
+          setUserInfo(validationResult.data)
+          return validationResult.data
+        } else {
+          console.warn('缓存数据验证失败，重新获取')
+        }
       }
       
       const response = await API.user.getInfo()
       // 验证API响应数据
-      const validatedData = validationStore.validateApiResponseData(response, 'userInfo')
-      setUserInfo(validatedData)
-      
-      // 缓存验证后的用户信息
-      cacheStore.setCache(cacheKey, validatedData, { dataType: 'user-info' })
-      console.log('✅ 用户信息获取并验证成功')
-      return validatedData
+      const apiValidationResult = validateApiResponse(response)
+      if (apiValidationResult.isValid) {
+        setUserInfo(apiValidationResult.data)
+        
+        // 缓存验证后的用户信息
+        cacheStore.setCache(cacheKey, apiValidationResult.data, { dataType: 'user-info' })
+        console.log('✅ 用户信息获取并验证成功')
+        return apiValidationResult.data
+      } else {
+        throw new Error('用户信息验证失败')
+      }
     } catch (error) {
       console.error('获取用户信息失败:', error)
       setLoginStatus({ loginError: error.message })
@@ -173,11 +188,7 @@ export const useUserStore = defineStore('user', () => {
           lastLoginTime: new Date().toISOString() 
         })
         
-        // 通知状态同步
-        stateSyncStore.addToSyncQueue({
-          type: 'user-login',
-          data: userData
-        })
+        // 登录成功，无需额外同步
         
         return userData
       } else {
@@ -213,11 +224,7 @@ export const useUserStore = defineStore('user', () => {
     uni.removeStorageSync('token')
     uni.removeStorageSync('userInfo')
     
-    // 通知状态同步
-    stateSyncStore.addToSyncQueue({
-      type: 'user-logout',
-      data: { timestamp: Date.now() }
-    })
+    // 登出成功，无需额外同步
   }
   
   // 初始化用户数据

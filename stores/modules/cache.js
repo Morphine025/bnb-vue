@@ -6,11 +6,8 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useCacheStrategyStore } from './cache-strategy'
 
 export const useCacheStore = defineStore('cache', () => {
-  // 使用分层缓存策略
-  const cacheStrategyStore = useCacheStrategyStore()
   
   // 缓存数据（保持向后兼容）
   const cacheData = ref(new Map())
@@ -137,17 +134,23 @@ export const useCacheStore = defineStore('cache', () => {
    */
   const setCache = (key, data, options = {}) => {
     try {
-      // 使用分层缓存策略
+      // 使用简化的缓存策略
       const dataType = options.dataType || 'default'
-      const result = cacheStrategyStore.setCache(key, data, dataType, options)
+      const maxAge = options.maxAge || cacheConfig.value.mediumTerm.maxAge
       
-      if (result) {
-        console.log(`✅ 缓存设置成功: ${key} (${dataType})`)
-      } else {
-        console.warn(`⚠️ 缓存设置失败: ${key} (${dataType})`)
-      }
+      // 直接设置到缓存数据中
+      cacheData.value.set(key, data)
+      cacheTimestamps.value.set(key, Date.now())
       
-      return result
+      // 计算数据大小
+      const dataSize = JSON.stringify(data).length
+      cacheSizes.value.set(key, dataSize)
+      
+      // 保存到本地存储
+      saveCacheToStorage(key, data)
+      
+      console.log(`✅ 缓存设置成功: ${key} (${dataType})`)
+      return true
     } catch (error) {
       console.error('❌ 设置缓存失败:', error)
       return false
@@ -176,17 +179,36 @@ export const useCacheStore = defineStore('cache', () => {
    */
   const getCache = (key, options = {}) => {
     try {
-      // 使用分层缓存策略
+      // 使用简化的缓存策略
       const dataType = options.dataType || 'default'
-      const result = cacheStrategyStore.getCache(key, dataType, options)
       
-      if (result !== null) {
-        console.log(`✅ 缓存命中: ${key} (${dataType})`)
-      } else {
-        console.log(`❌ 缓存未命中: ${key} (${dataType})`)
+      // 先从内存缓存获取
+      if (cacheData.value.has(key)) {
+        const timestamp = cacheTimestamps.value.get(key)
+        const maxAge = options.maxAge || cacheConfig.value.mediumTerm.maxAge
+        
+        // 检查是否过期
+        if (Date.now() - timestamp < maxAge) {
+          console.log(`✅ 缓存命中: ${key} (${dataType})`)
+          return cacheData.value.get(key)
+        } else {
+          // 过期了，删除缓存
+          removeCache(key)
+        }
       }
       
-      return result
+      // 尝试从本地存储加载
+      const storedData = loadCacheFromStorage(key)
+      if (storedData) {
+        // 重新设置到内存缓存
+        cacheData.value.set(key, storedData)
+        cacheTimestamps.value.set(key, Date.now())
+        console.log(`✅ 从本地存储加载缓存: ${key} (${dataType})`)
+        return storedData
+      }
+      
+      console.log(`❌ 缓存未命中: ${key} (${dataType})`)
+      return null
     } catch (error) {
       console.error('❌ 获取缓存失败:', error)
       return null
@@ -397,21 +419,19 @@ export const useCacheStore = defineStore('cache', () => {
   }
 
   const getCacheInfo = () => {
-    const strategyStats = cacheStrategyStore.getCacheStats()
     return {
-      totalSize: cacheStrategyStore.totalCacheSize,
-      hitRate: cacheStrategyStore.cacheHitRate,
-      cacheInfo: cacheStrategyStore.cacheInfo,
+      totalSize: totalCacheSize.value,
+      cacheKeys: cacheKeys.value,
+      expiredKeys: expiredKeys.value,
       offlineDataCount: offlineData.value.size,
       pendingSyncCount: pendingSyncCount.value,
-      ...strategyStats
+      cacheConfig: cacheConfig.value,
+      syncStatus: syncStatus.value
     }
   }
 
   const initializeCache = () => {
-    // 初始化分层缓存策略
-    cacheStrategyStore.initializeCache()
-    
+    // 初始化缓存系统
     loadOfflineQueueFromStorage()
     
     // 监听网络状态

@@ -10,7 +10,7 @@
 						</view>
 					</template>
 					<template v-else>
-						<image :src='safeAvatarUrl' mode="aspectFill" />
+						<image :src='safeAvatarUrl' mode="aspectFill" @error="handleAvatarError" />
 						<view class="tit">
 							{{userInfo.nickName}}
 						</view>
@@ -76,7 +76,7 @@
 						获取用户头像
 					</view>
 					<button class="avatar-warpper" open-type="chooseAvatar" @chooseavatar="onChooseavatar">
-						<image class="avatar" :src="safeAvatarUrl"></image>
+						<image class="avatar" :src="safeAvatarUrl" @error="handleAvatarError"></image>
 					</button>
 				</view>
 				<view class="flex">
@@ -130,6 +130,9 @@
 	
 	// 导入URL转换工具
 	import { convertToHttps } from '@/utils/security/urlConverter'
+	
+	// 导入图片错误处理工具
+	import { handleAvatarError } from '@/utils/ui/imageErrorHandler'
 
 	// 使用新的模块化Store
 	const userStore = useUserStore()

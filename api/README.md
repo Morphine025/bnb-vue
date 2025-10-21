@@ -2,44 +2,28 @@
 
 ## 📋 概述
 
-本项目采用统一的API管理架构，提供模块化API调用方式，支持完整的民宿转让业务功能。
+本项目采用统一的API管理架构，提供模块化API调用方式，支持完整的民宿转让业务功能。经过全面优化，已消除功能重复，简化架构设计，提升维护效率。
 
 ## 🏗️ 架构设计
 
 ```
 api/
 ├── config/index.js          # 统一配置管理
-├── index.js                # 统一API入口
+├── index.js                # 统一API入口（159行）
 ├── http.js                 # HTTP请求封装
 ├── core/                   # 核心功能
-│   ├── BaseAPI.js         # API基类
+│   ├── BaseAPI.js         # API基类（简化版，44行）
 │   └── ErrorHandler.js    # 错误处理
 ├── interceptors/           # 请求/响应拦截器
 │   ├── requestInterceptor.js
 │   └── responseInterceptor.js
 ├── modules/                # 模块化API类
-│   ├── UserAPI.js         # 用户相关API
+│   ├── UserAPI.js         # 用户相关API（302行，功能完整）
 │   ├── HomestayAPI.js     # 民宿相关API
 │   ├── SearchAPI.js       # 搜索相关API
 │   ├── RegionAPI.js       # 地区相关API
 │   └── ChatAPI.js         # 聊天相关API
-└── services/              # 服务层（空目录）
-
-utils/                     # 工具函数目录（根目录）
-├── apiUtils.js            # API相关工具函数
-├── cacheManager.js        # 缓存管理工具
-├── constants.js           # 常量定义
-├── dataValidator.js       # 数据验证工具
-├── debounce.js           # 防抖函数
-├── debugHelper.js        # 调试工具
-├── errorHandler.js       # 错误处理工具
-├── homestayStatus.js     # 民宿状态工具
-├── inputSanitizer.js     # 输入清理工具
-├── loadingManager.js     # 加载管理工具
-├── performanceMonitor.js  # 性能监控工具
-├── priceFormatter.js     # 价格格式化工具
-├── shareUtils.js         # 分享工具
-└── userInfo.js           # 用户信息工具
+└── README.md              # 本文档
 ```
 
 ## 🚀 推荐使用方式
@@ -64,9 +48,6 @@ const searchResults = await API.homestay.search({ keyword: '民宿' })
 // 搜索相关（搜索建议、热门搜索等）
 const suggestions = await API.search.getSuggestions({ keyword: '民宿' })
 const hotSearches = await API.search.getHotSearches()
-
-// 民宿搜索（已统一到HomestayAPI）
-const searchResults = await API.homestay.search({ keyword: '民宿' })
 
 // 地区相关
 const provinces = await API.region.getProvinces()
@@ -262,7 +243,7 @@ describe('User API', () => {
 ### 缓存策略
 
 ```javascript
-// 使用分层缓存策略
+// 使用轻量级缓存策略
 const cacheConfig = {
   shortTerm: { maxAge: 5 * 60 * 1000, maxSize: 10 * 1024 * 1024 },
   mediumTerm: { maxAge: 60 * 60 * 1000, maxSize: 50 * 1024 * 1024 },
@@ -358,12 +339,13 @@ console.log('Loading状态:', getLoadingStatus())
 - **v1.10.0**: 统一地区功能，将地区搜索和树形结构迁移到RegionAPI
 - **v1.11.0**: 统一用户数据功能，将用户民宿数据迁移到UserAPI
 - **v1.12.0**: 移除Mock数据支持，优化缓存策略
-- **v1.13.0**: 添加分层缓存和性能优化
+- **v1.13.0**: 添加轻量级缓存和性能优化
+- **v1.14.0**: 架构优化完成，消除功能重复，简化设计
 
 ## 🔄 迁移指南
 
 ### 从传统API到模块化API
-我们正在从传统的函数式API调用方式迁移到模块化API架构。请查看 [迁移指南](./MIGRATION_GUIDE.md) 了解详细的迁移步骤。
+我们正在从传统的函数式API调用方式迁移到模块化API架构。
 
 **快速迁移示例：**
 ```javascript
@@ -378,17 +360,17 @@ const banner = await API.homestay.getBanner()
 const user = await API.user.getInfo()
 ```
 
-## ⚠️ 模块功能重叠问题
+## ✅ 优化成果
 
-### 功能重叠解决方案
-在API模块中发现了一些功能重叠问题，请查看 [模块重叠解决方案](./MODULE_OVERLAP_SOLUTION.md) 了解详细的问题分析和解决方案。
+### 功能重复消除
+- **搜索功能统一**: 已合并SearchAPI和HomestayAPI的重复搜索功能
+- **地区功能统一**: 已合并SearchAPI和RegionAPI的重复地区功能
+- **用户数据统一**: 已合并UserAPI和HomestayAPI的重复用户数据功能
 
-**主要重叠问题：**
-- 搜索功能重叠：SearchAPI和HomestayAPI都包含搜索功能
-- 地区功能重叠：SearchAPI和RegionAPI都包含地区功能
-- 用户数据重叠：UserAPI和HomestayAPI都包含用户相关数据
-
-**查看详细映射表：** [功能重叠映射表](./OVERLAP_MAPPING.md)
+### 架构简化
+- **BaseAPI简化**: 已简化为44行代码，提供基础GET/POST方法
+- **错误处理简化**: 已简化错误处理机制，保持功能完整性的同时提升性能
+- **模块职责明确**: 各API模块职责清晰，无功能重叠
 
 ## 🔧 API接口总览
 
@@ -418,10 +400,6 @@ const user = await API.user.getInfo()
 - 搜索建议：`API.search.getSuggestions()`
 - 热门搜索：`API.search.getHotSearches()`
 - 搜索历史：`API.search.getSearchHistory()`
-
-**注意：** 
-- 民宿搜索功能已统一到 `API.homestay.search()`
-- 地区搜索功能已统一到 `API.region.searchRegions()`
 
 ### 地区相关接口
 - 省份列表：`API.region.getProvinces()`

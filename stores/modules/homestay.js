@@ -10,15 +10,13 @@ import { API } from '../../api'
 import { processHomestayImages, debounce, throttle, createVirtualList } from '../../utils'
 import { useLoadingStore } from './loading'
 import { useCacheStore } from './cache'
-import { useStateSyncStore } from './state-sync'
-import { useValidationStore } from './validation'
+import { validate, validateApiResponse, validatePagination } from '../../utils/security/dataValidator'
 
 export const useHomestayStore = defineStore('homestay', () => {
   // 使用统一的loading管理
   const loadingStore = useLoadingStore()
   const cacheStore = useCacheStore()
-  const stateSyncStore = useStateSyncStore()
-  const validationStore = useValidationStore()
+  // 验证功能已合并到工具函数中
   
   // 民宿列表数据 - 使用ref确保响应性
   const homestayList = ref([])
@@ -303,20 +301,34 @@ export const useHomestayStore = defineStore('homestay', () => {
       }
       
       // 验证搜索参数
-      const validatedParams = validationStore.validateSearchParams({
+      const searchParams = {
         page: pageToLoad,
         size: pageSize.value,
         ...filterConditions.value
-      })
+      }
+      
+      const validationRules = {
+        page: { required: true, type: 'number', min: 1 },
+        size: { required: true, type: 'number', min: 1, max: 100 },
+        keyword: { type: 'string', maxLength: 50, required: false },
+        location: { type: 'string', maxLength: 100, required: false },
+        sortBy: { type: 'string', required: false }
+      }
+      
+      const validationResult = validate(searchParams, validationRules)
+      if (!validationResult.isValid) {
+        throw new Error(`搜索参数验证失败: ${validationResult.errors.join(', ')}`)
+      }
+      const validatedParams = validationResult.data
       
       const response = await API.homestay.getHomeList(validatedParams)
       
       console.log('📡 API响应:', response)
       
       // 验证API响应数据
-      const validatedResponse = validationStore.validateApiResponseData(response, 'homestay')
-      if (validatedResponse) {
-        const newList = validatedResponse.list || []
+      const apiValidationResult = validateApiResponse(response)
+      if (apiValidationResult.isValid) {
+        const newList = apiValidationResult.data.list || []
         console.log('📡 API返回数据:', newList.length, '条')
         
         // 数据去重 - 避免重复数据
@@ -422,15 +434,7 @@ export const useHomestayStore = defineStore('homestay', () => {
           }
         }
         
-        // 通知状态同步
-        stateSyncStore.addToSyncQueue({
-          type: 'homestay-like',
-          data: {
-            homestayId,
-            liked: action === 'like',
-            likeCount: homestayList.value[index]?.likes || 0
-          }
-        })
+        // 点赞操作完成，无需额外同步
         
         return response.data
       } else {
@@ -459,14 +463,7 @@ export const useHomestayStore = defineStore('homestay', () => {
           }
         }
         
-        // 通知状态同步
-        stateSyncStore.addToSyncQueue({
-          type: 'homestay-collect',
-          data: {
-            homestayId,
-            collected: action === 'collect'
-          }
-        })
+        // 收藏操作完成，无需额外同步
         
         return response.data
       } else {

@@ -2,7 +2,7 @@
 
 ## 概述
 
-本项目使用 Pinia 作为状态管理库，按照功能模块进行了清晰的分层设计。所有状态管理代码位于 `stores/` 目录下。
+本项目使用 Pinia 作为状态管理库，按照功能模块进行了清晰的分层设计。经过全面优化，已建立子模块结构，统一导出管理，依赖关系清晰。所有状态管理代码位于 `stores/` 目录下。
 
 ## 目录结构
 
@@ -12,31 +12,23 @@ stores/
 ├── modules/                 # store模块目录
 │   ├── app.js              # 应用全局状态
 │   ├── cache.js            # 缓存模块状态
-│   ├── homestay.js         # 民宿模块状态（主模块）
-│   ├── homestay/            # 民宿子模块
-│   │   ├── detail.js       # 民宿详情状态
-│   │   ├── favorites.js    # 收藏状态
-│   │   ├── filter.js       # 筛选状态
-│   │   └── list.js         # 列表状态
+│   ├── loading.js          # 统一Loading状态管理
 │   ├── message.js          # 消息模块状态
-│   ├── performance.js      # 性能监控状态
-│   ├── search.js           # 搜索模块状态（主模块）
-│   ├── search/             # 搜索子模块
-│   │   ├── history.js      # 搜索历史
-│   │   ├── search.js       # 搜索功能
-│   │   └── suggestions.js  # 搜索建议
 │   ├── ui.js               # UI模块状态
 │   ├── user.js             # 用户模块状态（主模块）
-│   └── user/               # 用户子模块
-│       ├── follow.js       # 关注功能
-│       ├── profile.js      # 用户资料
-│       ├── settings.js     # 用户设置
-│       └── stats.js        # 用户统计
-├── types/                   # 类型定义
-│   └── index.js            # 所有类型定义
-├── examples/                # 使用示例
-│   ├── refactored-usage-examples.vue  # 重构后使用示例
-│   └── usage-examples.vue  # 完整使用示例
+│   ├── homestay.js         # 民宿模块状态（主模块）
+│   ├── homestay/           # 民宿子模块
+│   │   ├── favorites.js    # 收藏状态
+│   │   └── filter.js       # 筛选状态
+│   ├── user/               # 用户子模块
+│   │   ├── follow.js       # 关注功能
+│   │   ├── profile.js      # 用户资料
+│   │   ├── settings.js     # 用户设置
+│   │   └── stats.js         # 用户统计
+│   └── search/             # 搜索子模块
+│       ├── history.js      # 搜索历史
+│       ├── search.js       # 搜索功能
+│       └── suggestions.js  # 搜索建议
 └── README.md               # 本文档
 ```
 
@@ -230,6 +222,188 @@ await cacheStore.syncOfflineData()
 const cacheInfo = cacheStore.getCacheInfo()
 ```
 
+### 6. Loading模块 (loading.js)
+
+**功能**: 统一管理应用中的Loading状态
+
+**主要状态**:
+- `loadingCount`: Loading计数
+- `loadingText`: Loading文本
+- `isLoading`: 是否正在加载
+
+**主要方法**:
+- `showLoading(text)`: 显示Loading
+- `hideLoading()`: 隐藏Loading
+- `forceHideLoading()`: 强制隐藏所有Loading
+- `getLoadingStatus()`: 获取Loading状态
+
+**使用示例**:
+```javascript
+import { useLoadingStore } from '@/stores'
+
+const loadingStore = useLoadingStore()
+
+// 显示Loading
+loadingStore.showLoading('加载中...')
+
+// 检查状态
+const status = loadingStore.getLoadingStatus()
+console.log('Loading计数:', status.count)
+
+// 隐藏Loading
+loadingStore.hideLoading()
+```
+
+## 子模块组织
+
+### 民宿子模块 (homestay/)
+
+#### favorites.js - 收藏状态
+```javascript
+import { useFavoritesStore } from '@/stores'
+
+const favoritesStore = useFavoritesStore()
+
+// 添加收藏
+favoritesStore.addFavorite(homestay)
+
+// 移除收藏
+favoritesStore.removeFavorite(homestayId)
+
+// 检查是否已收藏
+const isFavorited = favoritesStore.isFavorited(homestayId)
+```
+
+#### filter.js - 筛选状态
+```javascript
+import { useFilterStore } from '@/stores'
+
+const filterStore = useFilterStore()
+
+// 设置筛选条件
+filterStore.setFilterConditions({
+  location: '北京',
+  priceRange: [100, 500],
+  rating: 4
+})
+
+// 清空筛选
+filterStore.clearFilters()
+
+// 获取筛选结果
+const filteredList = filterStore.filteredList
+```
+
+### 用户子模块 (user/)
+
+#### follow.js - 关注功能
+```javascript
+import { useFollowStore } from '@/stores'
+
+const followStore = useFollowStore()
+
+// 关注用户
+await followStore.followUser(userId)
+
+// 取消关注
+await followStore.unfollowUser(userId)
+
+// 获取关注列表
+const followList = await followStore.getFollowList()
+```
+
+#### profile.js - 用户资料
+```javascript
+import { useProfileStore } from '@/stores'
+
+const profileStore = useProfileStore()
+
+// 更新用户资料
+await profileStore.updateProfile(userData)
+
+// 获取用户资料
+const profile = await profileStore.getProfile()
+
+// 上传头像
+await profileStore.uploadAvatar(file)
+```
+
+#### settings.js - 用户设置
+```javascript
+import { useSettingsStore } from '@/stores'
+
+const settingsStore = useSettingsStore()
+
+// 更新设置
+settingsStore.updateSettings(settings)
+
+// 获取设置
+const settings = settingsStore.getSettings()
+
+// 重置设置
+settingsStore.resetSettings()
+```
+
+#### stats.js - 用户统计
+```javascript
+import { useStatsStore } from '@/stores'
+
+const statsStore = useStatsStore()
+
+// 获取用户统计
+const stats = await statsStore.getUserStats()
+
+// 更新统计
+statsStore.updateStats(newStats)
+```
+
+### 搜索子模块 (search/)
+
+#### history.js - 搜索历史
+```javascript
+import { useSearchHistoryStore } from '@/stores'
+
+const historyStore = useSearchHistoryStore()
+
+// 添加搜索历史
+historyStore.addSearchHistory('海边民宿')
+
+// 获取搜索历史
+const history = historyStore.getSearchHistory()
+
+// 清空搜索历史
+historyStore.clearSearchHistory()
+```
+
+#### search.js - 搜索功能
+```javascript
+import { useSearchStore } from '@/stores'
+
+const searchStore = useSearchStore()
+
+// 执行搜索
+const results = await searchStore.performSearch('民宿')
+
+// 获取搜索结果
+const searchResults = searchStore.searchResults
+
+// 清空搜索结果
+searchStore.clearSearchResults()
+```
+
+#### suggestions.js - 搜索建议
+```javascript
+import { useSuggestionsStore } from '@/stores'
+
+const suggestionsStore = useSuggestionsStore()
+
+// 获取搜索建议
+const suggestions = await suggestionsStore.getSuggestions('海')
+
+// 获取热门搜索
+const hotSearches = await suggestionsStore.getHotSearches()
+```
+
 ## 状态分层设计
 
 ### 全局状态
@@ -272,7 +446,7 @@ const cacheInfo = cacheStore.getCacheInfo()
 ### 5. 性能优化
 - 合理使用计算属性
 - 避免不必要的状态更新
-- 使用分层缓存减少重复请求
+- 使用轻量级缓存减少重复请求
 - 使用防抖和节流优化用户交互
 - 使用虚拟滚动处理大数据量列表
 
@@ -338,3 +512,9 @@ console.log('主题配置:', uni.getStorageSync('ui_theme_config'))
 - 优化计算属性性能
 - 添加性能监控功能
 - 移除Mock数据支持
+
+### v1.3.0 (2024-01-25)
+- 建立子模块结构
+- 统一导出管理
+- 简化依赖关系
+- 优化架构设计

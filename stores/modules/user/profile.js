@@ -8,12 +8,12 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { API } from '../../../api'
 import { useLoadingStore } from '../loading'
-import { useValidationStore } from '../validation'
+import { validate, validateApiResponse, sanitizeInput } from '../../../utils/security/dataValidator'
 
 export const useUserProfileStore = defineStore('userProfile', () => {
   // 使用统一的loading管理
   const loadingStore = useLoadingStore()
-  const validationStore = useValidationStore()
+  // 验证功能已合并到工具函数中
   
   // 用户资料编辑状态
   const isEditing = ref(false)
@@ -44,8 +44,12 @@ export const useUserProfileStore = defineStore('userProfile', () => {
       const rule = inputValidationRules[field]
       if (!rule) return { isValid: true, error: null }
       
-      const result = validationStore.createValidationMiddleware({ [field]: rule })({ [field]: value })
-      return { isValid: true, error: null }
+      const result = validate({ [field]: value }, { [field]: rule })
+      if (result.isValid) {
+        return { isValid: true, error: null }
+      } else {
+        return { isValid: false, error: result.errors[0] }
+      }
     } catch (error) {
       return { isValid: false, error: error.message }
     }
@@ -134,18 +138,18 @@ export const useUserProfileStore = defineStore('userProfile', () => {
     loadingStore.setLoading('save-profile', true)
     try {
       // 验证并清洗数据
-      const sanitizedData = validationStore.sanitizeData(editForm.value, inputValidationRules)
+      const sanitizedData = sanitizeInput(editForm.value)
       
       const response = await API.user.updateProfile(sanitizedData)
       // 验证API响应
-      const validatedResponse = validationStore.validateApiResponseData(response, 'userInfo')
+      const apiValidationResult = validateApiResponse(response)
       
-      if (validatedResponse) {
+      if (apiValidationResult.isValid) {
         // 清除编辑状态
         setEditing(false)
         clearEditForm()
         console.log('✅ 用户资料保存并验证成功')
-        return validatedResponse
+        return apiValidationResult.data
       } else {
         throw new Error('保存资料失败')
       }

@@ -2,7 +2,7 @@
 
 ## 概述
 
-本项目在 `utils/` 目录下提供了精简高效的工具函数，涵盖了API处理、缓存管理、数据验证、性能监控等核心功能。所有工具函数都经过简化设计，避免过度复杂，提供简洁的接口和良好的性能表现。
+本项目在 `utils/` 目录下提供了精简高效的工具函数，涵盖了API处理、缓存管理、数据验证、性能监控等核心功能。经过全面优化，已消除重复代码，简化架构设计，提升维护效率。所有工具函数都经过简化设计，避免过度复杂，提供简洁的接口和良好的性能表现。
 
 ## 重构说明
 
@@ -17,8 +17,7 @@
 ```
 utils/
 ├── security/                # 安全相关工具
-│   ├── inputSanitizer.js   # 输入清理工具
-│   └── dataValidator.js    # 数据验证工具
+│   └── dataValidator.js    # 统一数据验证和输入清理工具
 ├── performance/             # 性能相关工具
 │   ├── performanceMonitor.js # 性能监控工具
 │   ├── debounce.js         # 防抖节流工具
@@ -26,7 +25,7 @@ utils/
 ├── api/                    # API相关工具
 │   └── apiUtils.js         # 统一错误处理工具
 ├── cache/                  # 缓存相关工具
-│   └── cacheManager.js     # 缓存管理器
+│   └── cacheManager.js     # 轻量级缓存管理器
 ├── ui/                     # UI相关工具
 │   ├── loadingManager.js   # Loading状态管理
 │   └── shareUtils.js       # 分享工具
@@ -163,187 +162,25 @@ const userInfo = await userInfoManager.refreshUserInfo()
 
 ### 5. 安全相关工具 (security/)
 
-#### inputSanitizer.js
-- **功能**: 提供输入数据的清理和安全验证
-- **主要方法**:
-  - `stripHtmlTags()`: 清理HTML标签
-  - `sanitizeSpecialChars()`: 清理特殊字符
-  - `sanitizeInput()`: 清理用户输入
-  - `validatePhone()`: 验证手机号格式
-  - `validateNickname()`: 验证昵称格式
-- **特点**: XSS防护、输入清理、数据验证
-
-#### dataValidator.js
-- **功能**: 提供统一的数据验证功能
+#### dataValidator.js (已合并输入清理功能)
+- **功能**: 提供统一的数据验证和输入清理功能
 - **主要方法**:
   - `validate(data, rules)`: 通用验证函数
   - `validateApiResponse(response)`: 验证API响应
-  - `validatePagination(params)`: 验证分页参数
-  - `validatePhone(phone)`: 验证手机号
-  - `validateEmail(email)`: 验证邮箱
-  - `sanitizeInput(input)`: 清洗用户输入
-- **特点**: 统一验证逻辑、减少重复代码
+  - `validateUserId(userId)`: 用户ID验证
+  - `validatePhone(phone)`: 手机号验证
+  - `validateEmail(email)`: 邮箱验证
+  - `sanitizeInput(input, options)`: 清洗用户输入
+  - `stripHtmlTags(input)`: 清理HTML标签
+  - `sanitizeSpecialChars(input)`: 清理特殊字符
+  - `sanitizeStringInput(input, options)`: 清理字符串输入
+  - `validateNickname(nickname, options)`: 验证昵称
+  - `validateWechat(wechat, options)`: 验证微信号
+  - `isValidImageUrl(url)`: 验证图片URL
+  - `isInputSafe(input)`: 检查输入安全性
+- **特点**: 统一验证、XSS防护、输入清理、数据验证
 
-### 2. 性能相关工具 (performance/)
-
-#### performanceMonitor.js
-- **功能**: 轻量级性能监控工具
-- **主要特性**:
-  - 基础性能计时
-  - 简单统计信息
-  - 装饰器支持
-  - 开发环境日志
-
-#### debounce.js
-- **功能**: 提供防抖和节流功能
-- **主要方法**:
-  - `debounce()`: 防抖函数
-  - `throttle()`: 节流函数
-  - `cancellableDebounce()`: 可取消的防抖
-  - `createDebouncedSave()`: 创建防抖保存函数
-
-### 3. API相关工具 (api/)
-
-#### apiUtils.js
-- **功能**: 提供API相关的工具函数
-- **主要方法**:
-  - `generateRequestId()`: 生成请求ID
-  - `handleApiError()`: 处理API错误
-- **特点**: 兼容新的错误处理机制，提供统一的错误分类
-
-#### errorHandler.js
-- **功能**: 统一错误处理和用户提示
-- **主要特性**:
-  - 错误分类（网络错误、API错误、验证错误等）
-  - 错误级别管理（低、中、高、严重）
-  - 自动用户提示
-  - 错误日志记录
-
-### 2. 缓存管理
-
-#### cacheManager.js
-- **功能**: 轻量级数据缓存管理
-- **主要特性**:
-  - 基础内存缓存
-  - 简单过期策略
-  - 缓存装饰器
-  - 统计信息
-- **使用示例**:
-```javascript
-import { cacheUtils, withCache } from '@/utils'
-
-// 基础缓存操作
-cacheUtils.set('user_data', userData, 60000) // 缓存1分钟
-const userData = cacheUtils.get('user_data')
-
-// 缓存装饰器
-const cachedApiCall = withCache(5 * 60 * 1000)(apiCall)
-const result = await cachedApiCall(params)
-
-// 检查缓存
-if (cacheUtils.has('user_data')) {
-  console.log('缓存命中')
-}
-```
-
-### 3. 数据验证与清理
-
-#### dataValidator.js
-- **功能**: 提供数据验证和清洗功能
-- **主要方法**:
-  - `validateFollowListData()`: 验证关注列表数据
-  - `validateApiResponse()`: 验证API响应格式
-  - `sanitizeUserInput()`: 清洗用户输入数据
-  - `validatePaginationParams()`: 验证分页参数
-- **使用示例**:
-```javascript
-import { validateApiResponse, sanitizeUserInput } from '@/utils/dataValidator'
-
-// 验证API响应
-const result = validateApiResponse(response)
-if (result.isValid) {
-  console.log('数据有效:', result.data)
-} else {
-  console.error('验证失败:', result.errors)
-}
-
-// 清洗用户输入
-const cleanData = sanitizeUserInput(userInput)
-```
-
-#### inputSanitizer.js
-- **功能**: 提供输入数据的清理和安全验证
-- **主要特性**:
-  - XSS防护
-  - HTML标签清理
-  - 特殊字符处理
-  - 手机号、昵称、微信号验证
-- **使用示例**:
-```javascript
-import { sanitizeInput, validatePhone, validateNickname } from '@/utils/inputSanitizer'
-
-// 清理输入
-const cleanInput = sanitizeInput(userInput, {
-  maxLength: 100,
-  stripHtml: true
-})
-
-// 验证手机号
-const isValidPhone = validatePhone('13800138000')
-
-// 验证昵称
-const nicknameResult = validateNickname('用户昵称')
-if (nicknameResult.valid) {
-  console.log('昵称有效:', nicknameResult.cleaned)
-}
-```
-
-### 4. 性能优化工具
-
-#### debounce.js
-- **功能**: 提供防抖和节流功能
-- **主要方法**:
-  - `debounce()`: 防抖函数
-  - `throttle()`: 节流函数
-  - `cancellableDebounce()`: 可取消的防抖
-  - `createDebouncedSave()`: 创建防抖保存函数
-- **使用示例**:
-```javascript
-import { debounce, throttle } from '@/utils/debounce'
-
-// 防抖搜索
-const debouncedSearch = debounce(searchFunction, 300)
-
-// 节流滚动
-const throttledScroll = throttle(scrollHandler, 100)
-```
-
-#### performanceMonitor.js
-- **功能**: 监控应用性能指标
-- **主要特性**:
-  - 性能指标收集
-  - 内存使用监控
-  - 性能报告生成
-  - 观察者模式
-- **使用示例**:
-```javascript
-import { performanceUtils } from '@/utils/performanceMonitor'
-
-// 开始监控
-const monitor = performanceUtils.start('api_call', { endpoint: '/api/users' })
-
-// 执行操作
-await apiCall()
-
-// 结束监控
-monitor.end()
-
-// 获取统计信息
-const stats = performanceUtils.getStats()
-console.log('平均执行时间:', stats.averageDuration)
-```
-
-### 5. UI 状态管理
+### 6. UI相关工具 (ui/)
 
 #### loadingManager.js
 - **功能**: 统一管理应用中的Loading状态
@@ -366,41 +203,6 @@ console.log('Loading计数:', status.count)
 hideLoading()
 ```
 
-### 6. 业务工具函数
-
-#### homestayStatus.js
-- **功能**: 简化状态管理工具
-- **主要方法**:
-  - `createSimpleStatusManager()`: 创建状态管理器
-  - `getStatusText()`: 获取状态文本
-  - `getStatusColor()`: 获取状态颜色
-  - `isValidStatus()`: 验证状态是否有效
-- **使用示例**:
-```javascript
-import { createSimpleStatusManager, homestayStatusManager } from '@/utils'
-
-// 使用默认民宿状态管理器
-const statusText = homestayStatusManager.getStatusText('0')
-const color = homestayStatusManager.getStatusColor('0')
-
-// 创建自定义状态管理器
-const customStatusManager = createSimpleStatusManager(customStatusMap)
-```
-
-#### priceFormatter.js
-- **功能**: 价格格式化工具
-- **主要方法**:
-  - `formatPrice()`: 格式化价格显示（如10000显示为1万）
-  - `formatPriceWithSymbol()`: 带货币符号的价格格式化
-- **使用示例**:
-```javascript
-import { formatPrice, formatPriceWithSymbol } from '@/utils/priceFormatter'
-
-const price = 15000
-console.log(formatPrice(price))        // "1.5万"
-console.log(formatPriceWithSymbol(price)) // "¥1.5万"
-```
-
 #### shareUtils.js
 - **功能**: 提供各种分享功能
 - **主要方法**:
@@ -419,29 +221,23 @@ await shareToWechat(homestayItem)
 await showShareOptions(homestayItem)
 ```
 
-#### userInfo.js
-- **功能**: 通用用户信息管理工具
+### 7. 业务工具函数
+
+#### priceFormatter.js
+- **功能**: 价格格式化工具
 - **主要方法**:
-  - `createSimpleUserInfoManager()`: 创建用户信息管理器
-  - `refreshUserInfo()`: 刷新用户信息
-  - `getLocalUserInfo()`: 获取本地用户信息
-  - `updateUserInfo()`: 更新用户信息
+  - `formatPrice()`: 格式化价格显示（如10000显示为1万）
+  - `formatPriceWithSymbol()`: 带货币符号的价格格式化
 - **使用示例**:
 ```javascript
-import { createSimpleUserInfoManager, refreshUserInfo, getLocalUserInfo } from '@/utils'
+import { formatPrice, formatPriceWithSymbol } from '@/utils/priceFormatter'
 
-// 创建自定义用户信息管理器
-const customUserManager = createSimpleUserInfoManager(apiClient, 'customUserInfo')
-
-// 使用默认管理器
-const userInfo = await refreshUserInfo()
-const localUserInfo = await getLocalUserInfo()
-
-// 使用自定义管理器
-const customUserInfo = await customUserManager.refreshUserInfo()
+const price = 15000
+console.log(formatPrice(price))        // "1.5万"
+console.log(formatPriceWithSymbol(price)) // "¥1.5万"
 ```
 
-### 7. 常量定义
+### 8. 常量定义
 
 #### constants.js
 - **功能**: 统一管理应用中的常量和配置
@@ -460,6 +256,32 @@ import { FORM_CONSTANTS, ERROR_MESSAGES, DEBOUNCE_DELAY } from '@/utils/constant
 const maxLength = FORM_CONSTANTS.NICKNAME_MAX_LENGTH
 const errorMsg = ERROR_MESSAGES.NETWORK_ERROR
 const delay = DEBOUNCE_DELAY.SEARCH
+```
+
+## 统一入口管理
+
+### index.js
+- **功能**: 统一导出所有工具函数
+- **主要特性**:
+  - 按功能分组导出
+  - 便于维护和管理
+  - 支持按需导入
+- **使用示例**:
+```javascript
+// 按功能分组导入
+import { 
+  // 性能工具
+  debounce, throttle, startTimer, endTimer,
+  // 缓存工具
+  setCache, getCache, withCache,
+  // 验证工具
+  validate, sanitizeInput, validatePhone,
+  // 业务工具
+  formatPrice, createSimpleStatusManager
+} from '@/utils'
+
+// 或者按模块导入
+import { performanceUtils, cacheUtils, validationUtils } from '@/utils'
 ```
 
 ## 最佳实践
@@ -481,7 +303,7 @@ const delay = DEBOUNCE_DELAY.SEARCH
 
 ### 4. 数据安全
 - 对所有用户输入进行清理和验证
-- 使用 `inputSanitizer.js` 防止XSS攻击
+- 使用 `dataValidator.js` 防止XSS攻击
 - 验证API响应数据格式
 
 ### 5. 代码组织
@@ -551,3 +373,21 @@ const color = statusManager.getStatusColor('0')
 - 完成所有基础工具函数
 - 添加完整的文档说明
 - 提供详细的使用示例
+
+### v1.1.0 (2024-01-15)
+- 添加性能优化功能
+- 实现防抖和节流机制
+- 添加虚拟滚动支持
+- 优化缓存策略
+
+### v1.2.0 (2024-01-20)
+- 完善方法注释和复杂逻辑说明
+- 优化计算属性性能
+- 添加性能监控功能
+- 移除Mock数据支持
+
+### v1.3.0 (2024-01-25)
+- 架构优化完成
+- 消除功能重复
+- 简化设计
+- 建立统一入口管理

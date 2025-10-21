@@ -5,21 +5,36 @@
  */
 
 // 导入统一错误处理模块
-import { ErrorHandler, globalErrorHandler, handleError } from '../../utils/error/errorHandler.js'
+import { handleError } from '../../utils/error/errorHandler.js'
 import { ErrorTypes, ErrorLevels } from '../../utils/error/errorTypes.js'
 import { getErrorMessage, getErrorTitle, getErrorAction } from '../../utils/error/errorMessages.js'
 
 /**
  * API层错误处理器类
- * 继承自统一错误处理器，提供API特定的错误处理功能
+ * 提供API特定的错误处理功能
  */
-export class APIErrorHandler extends ErrorHandler {
+export class APIErrorHandler {
   constructor(options = {}) {
-    super(options)
+    this.options = options
     this.apiContext = {
       module: 'API',
       layer: 'API'
     }
+  }
+
+  /**
+   * 基础错误处理方法
+   * @param {Error} error - 错误对象
+   * @param {object} options - 处理选项
+   * @param {object} context - 上下文信息
+   */
+  handle(error, options = {}, context = {}) {
+    const mergedContext = {
+      ...this.apiContext,
+      ...context
+    }
+    
+    return handleError(error, mergedContext, options)
   }
 
   /**

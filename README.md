@@ -20,56 +20,65 @@
 
 ```
 uniapp-bnb-test/
-├── api/                    # API接口模块
+├── api/                    # API接口模块（已优化）
 │   ├── core/              # 核心API类
-│   │   ├── BaseAPI.js     # API基类
+│   │   ├── BaseAPI.js     # API基类（简化版，44行）
 │   │   └── ErrorHandler.js # 错误处理
 │   ├── modules/           # 业务API模块
 │   │   ├── HomestayAPI.js # 民宿相关API
-│   │   ├── UserAPI.js     # 用户相关API
+│   │   ├── UserAPI.js     # 用户相关API（302行，功能完整）
 │   │   ├── SearchAPI.js   # 搜索相关API
 │   │   ├── RegionAPI.js   # 地区相关API
 │   │   └── ChatAPI.js     # 聊天相关API
 │   ├── config/            # API配置
 │   ├── interceptors/      # 请求拦截器
-│   └── index.js           # API统一入口
-├── utils/                  # 工具函数目录
-│   ├── api/               # API相关工具
-│   │   └── apiUtils.js    # API工具函数
-│   ├── error/             # 统一错误处理模块
-│   │   ├── errorHandler.js # 统一错误处理器
-│   │   ├── errorTypes.js  # 错误类型定义
-│   │   ├── errorLogger.js # 错误日志记录器
-│   │   └── errorMessages.js # 错误消息映射
-│   ├── business/          # 业务逻辑工具
-│   │   ├── homestayStatus.js # 民宿状态工具
+│   └── index.js           # API统一入口（159行）
+├── utils/                  # 工具函数目录（已优化）
+│   ├── security/         # 安全相关工具
+│   │   └── dataValidator.js # 统一数据验证和输入清理工具
+│   ├── performance/      # 性能相关工具
+│   │   ├── performanceMonitor.js # 简化性能监控工具
+│   │   ├── debounce.js  # 防抖节流工具
+│   │   └── virtualList.js # 虚拟滚动工具
+│   ├── api/             # API相关工具
+│   │   └── apiUtils.js  # API工具函数
+│   ├── cache/           # 缓存相关工具
+│   │   └── cacheManager.js # 轻量级缓存管理器
+│   ├── ui/              # UI相关工具
+│   │   ├── loadingManager.js # Loading状态管理
+│   │   └── shareUtils.js # 分享工具
+│   ├── business/        # 业务相关工具
+│   │   ├── homestayStatus.js # 民宿状态管理
 │   │   ├── priceFormatter.js # 价格格式化工具
-│   │   └── userInfo.js    # 用户信息工具
-│   ├── cache/             # 缓存管理工具
-│   │   └── cacheManager.js # 缓存管理器
-│   ├── constants/         # 常量定义
-│   │   └── constants.js   # 常量定义
-│   ├── debug/             # 调试工具
-│   │   └── debugHelper.js # 调试工具
-│   ├── performance/       # 性能监控工具
-│   │   ├── debounce.js    # 防抖函数
-│   │   └── performanceMonitor.js # 性能监控
-│   ├── security/          # 安全工具
-│   │   ├── dataValidator.js # 数据验证工具
-│   │   └── inputSanitizer.js # 输入清理工具
-│   ├── ui/                # UI工具
-│   │   ├── loadingManager.js # 加载管理工具
-│   │   └── shareUtils.js  # 分享工具
-│   └── index.js           # 工具函数统一入口
-├── config/                 # 配置文件目录
-│   └── errorConfig.js     # 错误处理配置
-├── stores/                # Pinia状态管理
+│   │   └── userInfo.js  # 用户信息管理
+│   ├── debug/           # 调试相关工具
+│   │   └── debugHelper.js # 调试辅助工具
+│   ├── constants/       # 常量定义
+│   │   └── constants.js # 应用常量定义
+│   ├── index.js         # 统一入口文件
+│   └── README.md        # 工具函数文档
+├── stores/                # Pinia状态管理（已优化）
 │   ├── modules/           # 模块化Store
-│   │   ├── homestay/     # 民宿相关状态
-│   │   ├── user/         # 用户相关状态
-│   │   ├── search/       # 搜索相关状态
-│   │   └── ui.js         # UI状态
-│   └── index.js          # Store入口
+│   │   ├── app.js        # 应用全局状态
+│   │   ├── cache.js      # 缓存模块状态
+│   │   ├── loading.js    # 统一Loading状态管理
+│   │   ├── message.js    # 消息模块状态
+│   │   ├── ui.js         # UI模块状态
+│   │   ├── user.js       # 用户模块状态（主模块）
+│   │   ├── homestay.js   # 民宿模块状态（主模块）
+│   │   ├── homestay/     # 民宿子模块
+│   │   │   ├── favorites.js # 收藏状态
+│   │   │   └── filter.js    # 筛选状态
+│   │   ├── user/         # 用户子模块
+│   │   │   ├── follow.js    # 关注功能
+│   │   │   ├── profile.js   # 用户资料
+│   │   │   ├── settings.js # 用户设置
+│   │   │   └── stats.js     # 用户统计
+│   │   └── search/       # 搜索子模块
+│   │       ├── history.js    # 搜索历史
+│   │       ├── search.js     # 搜索功能
+│   │       └── suggestions.js # 搜索建议
+│   └── index.js           # Store统一入口
 ├── pages/                 # 页面目录
 │   ├── index/            # 首页（瀑布流展示）
 │   ├── detail/           # 详情页
@@ -85,38 +94,15 @@ uniapp-bnb-test/
 │   ├── search/           # 搜索页面
 │   ├── chat/             # 聊天页面
 │   └── user-profile/     # 用户资料页
-├── utils/                 # 工具函数目录
-│   ├── security/         # 安全相关工具
-│   │   ├── inputSanitizer.js # 输入清理工具
-│   │   └── dataValidator.js  # 数据验证工具
-│   ├── performance/      # 性能相关工具
-│   │   ├── performanceMonitor.js # 性能监控工具
-│   │   └── debounce.js  # 防抖节流工具
-│   ├── api/             # API相关工具
-│   │   ├── apiUtils.js  # API工具函数
-│   │   └── errorHandler.js # 统一错误处理
-│   ├── cache/           # 缓存相关工具
-│   │   └── cacheManager.js # 缓存管理器
-│   ├── ui/              # UI相关工具
-│   │   ├── loadingManager.js # Loading状态管理
-│   │   └── shareUtils.js # 分享工具
-│   ├── business/        # 业务相关工具
-│   │   ├── homestayStatus.js # 民宿状态管理
-│   │   ├── priceFormatter.js # 价格格式化工具
-│   │   └── userInfo.js  # 用户信息管理
-│   ├── debug/           # 调试相关工具
-│   │   └── debugHelper.js # 调试辅助工具
-│   ├── constants/       # 常量定义
-│   │   └── constants.js # 应用常量定义
-│   ├── index.js         # 统一入口文件
-│   └── README.md        # 工具函数文档
 ├── static/               # 静态资源
 ├── uni_modules/          # uni-app模块
 ├── App.vue               # 应用根组件
 ├── main.js               # 应用入口
 ├── manifest.json         # 应用配置
 ├── pages.json            # 页面配置
-└── package.json          # 依赖配置
+├── package.json          # 依赖配置
+├── 项目评估报告.md        # 项目评估报告
+└── 代码质量与结构优化方案.md # 优化方案文档
 ```
 
 ## 功能特性
@@ -136,7 +122,7 @@ uniapp-bnb-test/
 - ✅ **状态管理**: 模块化Pinia Store + 数据持久化 + 分层缓存
 - ✅ **错误处理**: 统一错误处理 + 用户友好提示
 - ✅ **API封装**: 统一接口管理 + 请求拦截 + 响应处理
-- ✅ **缓存策略**: 分层缓存 + 智能缓存清理 + 离线数据同步
+- ✅ **缓存策略**: 轻量级缓存管理 + 智能缓存清理
 
 ### 📱 用户体验
 - ✅ **交互体验**: 流畅动画 + 加载状态 + 空状态处理
@@ -155,6 +141,23 @@ uniapp-bnb-test/
 - ✅ **调试工具**: 开发环境检测 + 调试信息输出
 - ✅ **URL转换**: 智能协议转换 + 环境适配
 
+## 项目优化成果
+
+### ✅ 架构优化
+- **API模块**: BaseAPI已简化为基础GET/POST方法，UserAPI功能完整（302行）
+- **Utils模块**: 已建立统一入口管理，按功能分组导出，消除重复代码
+- **Stores模块**: 已建立子模块结构，统一导出管理，依赖关系清晰
+
+### ✅ 代码质量提升
+- **重复代码消除**: 已删除功能重复的工具函数和Store模块
+- **架构简化**: 已移除过度设计的抽象层
+- **维护性提升**: 模块间依赖关系清晰，维护成本显著降低
+
+### ✅ 性能优化
+- **缓存策略简化**: 已移除复杂的分层缓存，使用轻量级缓存管理
+- **错误处理简化**: 已简化错误处理机制，保持功能完整性的同时提升性能
+- **工具函数优化**: 已合并所有验证功能到dataValidator.js
+
 ## 开发规范
 
 ### 📝 代码规范
@@ -167,7 +170,7 @@ uniapp-bnb-test/
 - **接口设计**: 统一BaseAPI基类 + 模块化API管理
 - **错误处理**: 全局错误处理 + 用户友好提示
 - **数据格式**: 统一响应格式 + 类型安全
-- **缓存策略**: 分层缓存 + 智能缓存清理 + 离线数据同步
+- **缓存策略**: 轻量级缓存管理 + 智能缓存清理
 
 ### 🧩 组件规范
 - **组件设计**: 单一职责 + 可复用性
@@ -191,13 +194,13 @@ uniapp-bnb-test/
 
 ### 🔧 核心模块
 - **API模块**: 统一接口管理，支持缓存和离线数据
-- **Store模块**: 模块化状态管理，分层缓存策略
+- **Store模块**: 模块化状态管理，轻量级缓存策略
 - **Utils模块**: 工具函数集合，性能优化工具
 - **Components**: 可复用组件库
 
 ### 📊 性能优化
 - **图片优化**: 懒加载 + 压缩 + 错误处理
-- **数据缓存**: 分层缓存策略 + 智能缓存清理 + 离线数据同步
+- **数据缓存**: 轻量级缓存策略 + 智能缓存清理
 - **请求优化**: 防抖 + 节流 + 去重 + 分页加载
 - **渲染优化**: 计算属性缓存 + 虚拟滚动 + 性能监控
 
@@ -250,7 +253,7 @@ npm run build:app
 
 ### 📖 API文档
 - **接口文档**: [api/README.md](api/README.md)
-- **缓存策略**: 分层缓存 + 智能缓存清理
+- **缓存策略**: 轻量级缓存管理
 - **错误处理**: 统一错误处理机制
 
 ### 🧩 组件文档

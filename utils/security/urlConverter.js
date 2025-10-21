@@ -28,7 +28,7 @@ export const convertToHttps = (url) => {
   }
   
   // 检查是否为微信小程序环境
-  const isWechatMiniProgram = typeof wx !== 'undefined' && (wx.getWindowInfo || wx.getSystemInfoSync)
+  const isWechatMiniProgram = typeof wx !== 'undefined' && (wx.getWindowInfo || wx.getDeviceInfo || wx.getAppBaseInfo)
   
   // 特殊处理微信小程序临时文件
   if (isWechatMiniProgram && url.startsWith('http://tmp/')) {
@@ -49,13 +49,14 @@ export const convertToHttps = (url) => {
     const isLocalDevServer = url.includes('localhost:8081') || url.includes('127.0.0.1:8081')
     
     if (isLocalDevServer) {
-      // 本地开发环境：提供开发建议，但保持HTTP协议以便调试
+      // 微信小程序环境：对本地开发服务器使用特殊处理
       console.warn('⚠️ 微信小程序环境检测到本地HTTP服务器')
       console.warn('💡 建议：使用内网穿透工具（如ngrok）将本地服务暴露为HTTPS')
       console.warn('💡 或者：在微信开发者工具中关闭"不校验合法域名"选项')
-      console.warn('💡 当前使用HTTP协议进行开发调试')
+      console.warn('💡 当前保持HTTP协议，但可能显示协议警告')
       
-      // 在开发环境中，暂时保持HTTP协议以便调试
+      // 对于本地开发服务器，保持HTTP协议但添加错误处理
+      console.log('🔧 微信小程序环境保持HTTP协议用于本地开发:', url)
       return url
     } else {
       // 非本地服务器，转换为HTTPS
@@ -228,7 +229,7 @@ export const createImageErrorHandler = (originalUrl) => {
     console.warn('图片加载失败，尝试降级处理:', error)
     
     // 检查是否为微信小程序环境
-    const isWechatMiniProgram = typeof wx !== 'undefined' && (wx.getWindowInfo || wx.getSystemInfoSync)
+    const isWechatMiniProgram = typeof wx !== 'undefined' && (wx.getWindowInfo || wx.getDeviceInfo || wx.getAppBaseInfo)
     
     // 如果是HTTPS失败，尝试降级到HTTP（仅限本地开发环境）
     if (originalUrl && originalUrl.includes('localhost:8081')) {

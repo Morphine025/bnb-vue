@@ -29,6 +29,20 @@ export const handleImageError = (errorEvent, options = {}) => {
   const currentSrc = errorEvent.target.src
   console.log('当前图片源:', currentSrc)
 
+  // 检查是否为SSL协议错误（本地开发服务器不支持HTTPS）
+  const isSSLError = currentSrc.includes('https://localhost:8081') || currentSrc.includes('https://127.0.0.1:8081')
+  
+  if (isSSLError) {
+    const httpSrc = currentSrc.replace('https://', 'http://')
+    console.log('🔄 检测到SSL协议错误，降级到HTTP协议:', httpSrc)
+    console.warn('⚠️ 注意：微信小程序可能仍会显示HTTP协议警告')
+    console.warn('💡 建议：使用内网穿透工具（如ngrok）将本地服务暴露为HTTPS')
+    
+    // 更新图片源
+    errorEvent.target.src = httpSrc
+    return
+  }
+
   // 如果启用HTTPS降级且是本地开发服务器
   if (enableHttpsFallback && currentSrc.includes('https://localhost:8081')) {
     const httpSrc = currentSrc.replace('https://', 'http://')

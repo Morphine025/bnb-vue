@@ -9,7 +9,7 @@
  * @returns {boolean} 是否为微信小程序开发环境
  */
 export const isWechatMiniProgramDev = () => {
-  return typeof wx !== 'undefined' && (wx.getWindowInfo || wx.getSystemInfoSync)
+  return typeof wx !== 'undefined' && (wx.getWindowInfo || wx.getDeviceInfo || wx.getAppBaseInfo)
 }
 
 /**
