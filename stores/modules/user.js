@@ -21,13 +21,14 @@ export const useUserStore = defineStore('user', () => {
   const userInfo = ref(null)
   const isLoggedIn = computed(() => !!userInfo.value)
   
-  // 用户统计数据
+  // 用户统计数据 - 合并到userStore中统一管理
   const userStats = ref({
     followers: 0,
     following: 0,
     homestays: 0,
     likes: 0,
-    views: 0
+    views: 0,
+    collections: 0
   })
   
   // 用户设置
@@ -57,7 +58,44 @@ export const useUserStore = defineStore('user', () => {
   }
   
   const setUserStats = (stats) => {
-    userStats.value = { ...userStats.value, ...stats }
+    console.log('🔄 设置用户统计数据，原始数据:', stats)
+    
+    // 字段名映射：后端字段名 -> 前端字段名
+    const fieldMapping = {
+      fansCount: 'followers',
+      followCount: 'following', 
+      likeCount: 'likes',
+      collectCount: 'collections',
+      viewCount: 'views',
+      postCount: 'homestays',
+      // 兼容可能的其他字段名
+      followers: 'followers',
+      following: 'following',
+      likes: 'likes',
+      collections: 'collections',
+      views: 'views',
+      homestays: 'homestays'
+    }
+    
+    // 转换字段名
+    const mappedStats = {}
+    Object.keys(stats).forEach(key => {
+      const frontendKey = fieldMapping[key] || key
+      mappedStats[frontendKey] = stats[key] || 0
+    })
+    
+    console.log('✅ 字段名映射后的数据:', mappedStats)
+    userStats.value = { ...userStats.value, ...mappedStats }
+    
+    // 保存到本地存储
+    try {
+      uni.setStorageSync('userStats', JSON.stringify(userStats.value))
+      console.log('✅ 统计数据已保存到本地存储')
+    } catch (error) {
+      console.error('保存统计数据到本地存储失败:', error)
+    }
+    
+    console.log('✅ 最终保存的统计数据:', userStats.value)
   }
   
   const setUserSettings = (settings) => {
@@ -156,12 +194,20 @@ export const useUserStore = defineStore('user', () => {
     loadingStore.setLoading('user-stats', true)
     try {
       const response = await API.user.getStats()
-      if (response && response.code === 1) {
-        setUserStats(response.data)
-        return response.data
+      console.log('🔍 fetchUserStats API响应:', response)
+      
+      if (response && response.data) {
+        // 提取统计数据部分，而不是整个API响应
+        const statsData = response.data
+        console.log('✅ 提取的统计数据:', statsData)
+        setUserStats(statsData)
+        return statsData
+      } else {
+        throw new Error('获取用户统计失败')
       }
     } catch (error) {
       console.error('获取用户统计失败:', error)
+      throw error
     } finally {
       loadingStore.setLoading('user-stats', false)
     }
@@ -230,11 +276,16 @@ export const useUserStore = defineStore('user', () => {
   // 初始化用户数据
   const initializeUser = async () => {
     try {
+      console.log('🔄 开始初始化用户数据')
+      
       // 从本地存储恢复用户信息
       const localUserInfo = uni.getStorageSync('userInfo')
       if (localUserInfo) {
         const user = JSON.parse(localUserInfo)
         setUserInfo(user)
+        console.log('✅ 从本地存储恢复用户信息:', user)
+      } else {
+        console.log('❌ 本地存储中没有用户信息')
       }
       
       // 从本地存储恢复用户设置
@@ -242,13 +293,30 @@ export const useUserStore = defineStore('user', () => {
       if (localSettings) {
         const settings = JSON.parse(localSettings)
         setUserSettings(settings)
+        console.log('✅ 从本地存储恢复用户设置:', settings)
       }
       
-      // 如果已登录，获取最新用户信息
-      if (isLoggedIn.value) {
-        await fetchUserInfo()
-        await fetchUserStats()
+      // 从本地存储恢复用户统计数据
+      const localStats = uni.getStorageSync('userStats')
+      if (localStats) {
+        const stats = JSON.parse(localStats)
+        setUserStats(stats)
+        console.log('✅ 从本地存储恢复用户统计数据:', stats)
       }
+      
+      // 如果已登录且有token，尝试获取最新用户信息
+      const token = uni.getStorageSync('token')
+      if (isLoggedIn.value && token) {
+        console.log('✅ 用户已登录且有token，尝试获取最新数据')
+        try {
+          await fetchUserInfo()
+          await fetchUserStats()
+        } catch (error) {
+          console.warn('获取最新用户数据失败，使用本地数据:', error)
+        }
+      }
+      
+      console.log('✅ 用户数据初始化完成')
     } catch (error) {
       console.error('初始化用户数据失败:', error)
     }

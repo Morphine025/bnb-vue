@@ -44,7 +44,7 @@ export function createApp() {
   
   // 配置全局错误处理
   app.config.errorHandler = (err, vm, info) => {
-    handleError(err, 'Vue Global Error', { info, vm })
+    handleError(err, 'Vue Global Error', { info })
   }
   
   return {

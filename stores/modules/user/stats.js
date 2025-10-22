@@ -33,18 +33,34 @@ export const useUserStatsStore = defineStore('userStats', () => {
       likeCount: 'likes',
       collectCount: 'collections',
       viewCount: 'views',
-      postCount: 'homestays'
+      postCount: 'homestays',
+      // 兼容可能的其他字段名
+      followers: 'followers',
+      following: 'following',
+      likes: 'likes',
+      collections: 'collections',
+      views: 'views',
+      homestays: 'homestays'
     }
     
     // 转换字段名
     const mappedStats = {}
     Object.keys(stats).forEach(key => {
       const frontendKey = fieldMapping[key] || key
-      mappedStats[frontendKey] = stats[key]
+      mappedStats[frontendKey] = stats[key] || 0
     })
     
     console.log('✅ 字段名映射后的数据:', mappedStats)
     userStats.value = { ...userStats.value, ...mappedStats }
+    
+    // 保存到本地存储
+    try {
+      uni.setStorageSync('userStats', JSON.stringify(userStats.value))
+      console.log('✅ 统计数据已保存到本地存储')
+    } catch (error) {
+      console.error('保存统计数据到本地存储失败:', error)
+    }
+    
     console.log('✅ 最终保存的统计数据:', userStats.value)
   }
   

@@ -6,6 +6,7 @@
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { config } from '../../api/config'
 
 export const useCacheStore = defineStore('cache', () => {
   
@@ -454,29 +455,13 @@ export const useCacheStore = defineStore('cache', () => {
   }
 
   const checkForDataUpdates = async () => {
-    try {
-      // 这里可以调用API检查是否有新数据
-      // 例如：获取最新数据的时间戳
-      const response = await fetch('/api/homestay/latest-timestamp')
-      const data = await response.json()
-      
-      if (data.timestamp > dataSyncStatus.value.lastCheckTime) {
-        dataSyncStatus.value.hasNewData = true
-        dataSyncStatus.value.pendingUpdates.push({
-          type: 'homestay_update',
-          timestamp: data.timestamp,
-          time: new Date().toISOString()
-        })
-        
-        // 清除相关缓存
-        clearCacheByDataType('homestay-list')
-        console.log('🔄 检测到新数据，已清除相关缓存')
-      }
-      
-      dataSyncStatus.value.lastCheckTime = data.timestamp
-    } catch (error) {
-      console.error('数据同步检查失败:', error)
-    }
+    // 小程序环境下禁用数据同步检查功能
+    // 原因：
+    // 1. 小程序生命周期短，不适合长时间后台检查
+    // 2. 用户更习惯主动下拉刷新获取最新数据
+    // 3. 减少不必要的网络请求和电池消耗
+    // 4. 现有缓存机制和下拉刷新已能满足需求
+    console.log('🔄 数据同步检查功能已禁用（小程序环境优化）')
   }
 
   // 新增：强制刷新缓存

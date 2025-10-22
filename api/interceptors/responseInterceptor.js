@@ -36,7 +36,11 @@ export const responseInterceptor = (response) => {
           module: 'ResponseInterceptor',
           layer: 'Interceptor',
           statusCode: response.statusCode,
-          responseData: response.data
+          responseData: response.data ? {
+            code: response.data.code,
+            message: response.data.message || response.data.msg,
+            data: response.data.data
+          } : null
         }
         
         const errorOptions = {

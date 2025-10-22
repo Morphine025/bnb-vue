@@ -1,35 +1,8 @@
 <template>
 	<!-- 首页主容器 -->
 	<view class="social-forum">
-		<!-- 顶部搜索区域 -->
-		<view class="header-section">
-			<view class="search-container">
-				<view class="search-wrapper">
-					<!-- 项目图标 -->
-					<view class="project-icon">
-						<image src="/static/unnamed.jpg" mode="aspectFill" class="icon-image"></image>
-					</view>
-					
-					<!-- 搜索输入框 -->
-					<view class="search-input" @click="goToSearch">
-						<up-icon name="search" size="18" color="#999"></up-icon>
-						<input 
-							type="text" 
-							placeholder="搜索帖子/用户/圈子" 
-							:value="keyword"
-							class="search-field"
-							@confirm="handleSearch"
-							@input="handleSearchInput"
-							:disabled="true"
-						/>
-						<!-- 清除搜索按钮 -->
-						<view class="search-clear" v-if="keyword" @click.stop="clearSearch">
-							<up-icon name="close-circle-fill" size="16" color="#ccc"></up-icon>
-						</view>
-					</view>
-				</view>
-			</view>
-		</view>
+		<!-- 头部搜索组件 -->
+		<HeaderSearch />
 
 		<!-- 内容区域 - 支持下拉刷新 -->
 		<scroll-view 
@@ -39,46 +12,8 @@
 			:refresher-triggered="isRefreshing"
 			@refresherrefresh="onRefresherRefresh"
 		>
-			<!-- 轮播图区域 -->
-			<view class="banner-container" v-if="bannerList.length > 0">
-				<!-- 轮播图组件 - 支持自动播放和指示器 -->
-				<swiper 
-					class="banner-swiper" 
-					:indicator-dots="bannerList.length > 1" 
-					:autoplay="bannerList.length > 1" 
-					:interval="3000" 
-					:duration="500"
-					indicator-color="rgba(255, 255, 255, 0.5)"
-					indicator-active-color="#667eea"
-					:circular="bannerList.length > 1"
-				>
-					<!-- 轮播图项目 -->
-					<swiper-item v-for="(banner, index) in bannerList" :key="banner.bannerId || banner.banner_id || banner.id || `banner_${index}`">
-						<view class="banner-item" @click="handleBannerClick(banner)">
-							<!-- 轮播图图片 -->
-							<image 
-								:src="getImageUrl(banner.imageUrl || banner.image_url || banner.image || banner.img)" 
-								mode="aspectFill" 
-								class="banner-image"
-								@error="handleBannerImageError"
-							></image>
-							<!-- 轮播图文字覆盖层 -->
-							<view class="banner-overlay">
-								<view class="banner-title">{{ banner.title || '暂无标题' }}</view>
-								<view class="banner-subtitle" v-if="banner.subtitle">{{ banner.subtitle }}</view>
-							</view>
-						</view>
-					</swiper-item>
-				</swiper>
-			</view>
-			
-			<!-- 轮播图加载失败时的占位符 -->
-			<view class="banner-placeholder" v-else>
-				<view class="placeholder-content">
-					<up-icon name="image" size="48" color="#ccc"></up-icon>
-					<text class="placeholder-text">暂无轮播图</text>
-				</view>
-			</view>
+			<!-- 轮播图组件 -->
+			<BannerCarousel :bannerList="bannerList" />
 			
 			<!-- 筛选栏 - 地址选择和布局切换 -->
 			<view class="filter-bar">
@@ -351,6 +286,10 @@ import {
 import { formatPrice } from '@/utils'  // 价格格式化
 import { convertToHttps } from '@/utils/security/urlConverter'  // URL安全转换
 
+// 导入组件
+import HeaderSearch from './components/HeaderSearch.vue'
+import BannerCarousel from './components/BannerCarousel.vue'
+
 
 // ==================== 状态管理 ====================
 
@@ -361,8 +300,7 @@ const cacheStore = useCacheStore()            // 缓存管理
 
 // ==================== 响应式数据定义 ====================
 
-// 搜索相关
-const keyword = ref('')                       // 搜索关键词
+// 搜索相关 - 仅保留跳转功能
 
 // 轮播图相关
 const bannerList = ref([])                    // 轮播图数据
@@ -386,7 +324,6 @@ const loadingProvinces = ref(false)          // 是否正在加载省份数据
 // 从Store获取民宿数据
 const fallList = computed(() => {
 	const data = homestayListStore.processedHomestayList || []
-	console.log('🔄 首页 fallList computed 计算，数据长度:', data.length)
 	return data
 })
 
@@ -434,59 +371,6 @@ const toggleLayout = () => {
 	saveLayoutPreference()
 }
 
-// ==================== 搜索功能 ====================
-
-/**
- * 跳转到搜索页面
- * 点击搜索框时触发
- */
-const goToSearch = () => {
-	uni.navigateTo({
-		url: '/pages/search/search'
-	})
-}
-
-/**
- * 处理搜索确认
- * @param {string} searchKeyword - 搜索关键词
- */
-const handleSearch = (searchKeyword) => {
-	console.log('搜索关键词:', searchKeyword)
-	// 实现搜索逻辑
-}
-
-/**
- * 处理搜索输入
- * @param {Object} e - 输入事件对象
- */
-const handleSearchInput = (e) => {
-	keyword.value = e.detail.value
-}
-
-/**
- * 清除搜索内容
- */
-const clearSearch = () => {
-	keyword.value = ''
-}
-
-// ==================== 轮播图功能 ====================
-
-/**
- * 处理轮播图点击事件
- * @param {Object} banner - 轮播图数据对象
- */
-const handleBannerClick = (banner) => {
-	console.log('点击轮播图:', banner)
-	// 实现轮播图点击逻辑
-}
-
-/**
- * 处理轮播图图片加载失败
- */
-const handleBannerImageError = () => {
-	console.log('轮播图加载失败')
-}
 
 // ==================== 地址选择功能 ====================
 
@@ -608,8 +492,6 @@ const getImageUrl = (url) => {
  * @param {Object} errorData - 错误数据对象
  */
 const handleImageError = (errorData) => {
-	console.log('图片加载失败:', errorData)
-	
 	// 使用智能错误处理
 	if (errorData && errorData.target && errorData.target.src) {
 		const currentSrc = errorData.target.src
@@ -617,14 +499,12 @@ const handleImageError = (errorData) => {
 		// 如果是HTTPS失败，尝试降级到HTTP（仅限本地开发环境）
 		if (currentSrc.includes('https://localhost:8081')) {
 			const httpSrc = currentSrc.replace('https://', 'http://')
-			console.log('🔄 尝试降级到HTTP协议:', httpSrc)
-			console.warn('⚠️ 注意：微信小程序可能仍会显示HTTP协议警告')
-			console.warn('💡 建议：在微信开发者工具中关闭"不校验合法域名"选项')
+			console.log('图片协议降级:', httpSrc)
 			// 更新图片源
 			errorData.target.src = httpSrc
 		} else if (currentSrc.includes('http://localhost:8081')) {
 			// 如果HTTP也失败，使用默认图片
-			console.log('🔄 使用默认图片作为降级方案')
+			console.log('使用默认图片')
 			errorData.target.src = '/static/logo.png'
 		}
 	}
@@ -657,7 +537,6 @@ const onRefresherRefresh = async () => {
     
     try {
         // 强制清除所有相关缓存
-        console.log('🔄 下拉刷新，清除缓存')
         cacheStore.clearCacheByDataType('homestay-list')
         cacheStore.clearCacheByDataType('banner')
         
@@ -670,9 +549,9 @@ const onRefresherRefresh = async () => {
             bannerList.value = bannerResponse.data
         }
         
-        console.log('✅ 下拉刷新完成')
+        console.log('下拉刷新完成')
     } catch (e) {
-        console.error('refresher 刷新失败:', e)
+        console.error('下拉刷新失败:', e)
     } finally {
         isRefreshing.value = false
     }
@@ -686,7 +565,6 @@ const onRefresherRefresh = async () => {
  * @param {Object} options - 页面参数
  */
 onLoad(async (options) => {
-	console.log('首页加载，参数:', options)
 	loadLayoutPreference()
 	
 	// 检查是否需要强制刷新
@@ -703,12 +581,10 @@ onLoad(async (options) => {
 		// 根据缓存年龄和强制刷新参数决定是否使用缓存
 		if (forceRefresh || !cacheAge || cacheAge > 2 * 60 * 1000) {
 			// 强制刷新或缓存过期，清除缓存
-			console.log('🔄 强制刷新或缓存过期，清除缓存')
 			await homestayListStore.clearCache()
 			await loadHomestayList()
 		} else {
 			// 使用缓存
-			console.log('✅ 使用缓存数据，缓存年龄:', Math.round(cacheAge / 1000), '秒')
 			await loadHomestayList()
 		}
 		
@@ -723,8 +599,6 @@ onLoad(async (options) => {
  * 启动数据同步检查，确保数据最新
  */
 onShow(() => {
-	console.log('首页显示')
-	
 	// 启动数据同步检查
 	try {
 		cacheStore.startDataSyncCheck()
@@ -738,7 +612,6 @@ onShow(() => {
  * 当用户滚动到底部时自动加载更多数据
  */
 onReachBottom(() => {
-	console.log('触底加载更多')
 	loadMore()
 })
 
@@ -754,140 +627,7 @@ onReachBottom(() => {
 	min-height: 100vh;
 }
 
-/* ==================== 头部搜索区域样式 ==================== */
 
-/* 头部搜索区域 */
-.header-section {
-    background: transparent;
-    padding: 20rpx 30rpx;
-    box-shadow: none;
-}
-
-/* 搜索容器 */
-.search-container {
-	width: 100%;
-}
-
-/* 搜索包装器 */
-.search-wrapper {
-    display: flex;
-    align-items: center;
-    background: transparent;
-    border-radius: 50rpx;
-    padding: 20rpx 30rpx;
-}
-
-/* 项目图标 */
-.project-icon {
-	width: 60rpx;
-	height: 60rpx;
-	margin-right: 20rpx;
-}
-
-.icon-image {
-	width: 100%;
-	height: 100%;
-	border-radius: 50%;
-}
-
-/* 搜索输入框 */
-.search-input {
-	flex: 1;
-	display: flex;
-	align-items: center;
-	background: #fff;
-	border-radius: 40rpx;
-	padding: 15rpx 25rpx;
-	position: relative;
-}
-
-/* 搜索输入字段 */
-.search-field {
-	flex: 1;
-	font-size: 28rpx;
-	color: #333;
-	margin-left: 15rpx;
-}
-
-/* 清除搜索按钮 */
-.search-clear {
-	position: absolute;
-	right: 15rpx;
-	top: 50%;
-	transform: translateY(-50%);
-}
-
-/* ==================== 轮播图样式 ==================== */
-
-/* 轮播图容器 */
-.banner-container {
-    width: 100%;
-    height: 320rpx;
-    padding: 0 20rpx;
-    box-sizing: border-box;
-    margin-bottom: 10rpx;
-}
-
-.banner-swiper {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-}
-
-.banner-item {
-	position: relative;
-	width: 100%;
-	height: 100%;
-}
-
-.banner-image {
-	width: 100%;
-	height: 100%;
-	border-radius: 20rpx;
-}
-
-.banner-overlay {
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
-	padding: 40rpx 30rpx 30rpx;
-	border-radius: 0 0 20rpx 20rpx;
-}
-
-.banner-title {
-	color: #fff;
-	font-size: 32rpx;
-	font-weight: bold;
-	margin-bottom: 10rpx;
-}
-
-.banner-subtitle {
-	color: rgba(255, 255, 255, 0.8);
-	font-size: 24rpx;
-}
-
-.banner-placeholder {
-	width: 100%;
-	height: 400rpx;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: #f8f9fa;
-	border-radius: 20rpx;
-	margin-bottom: 20rpx;
-}
-
-.placeholder-content {
-	text-align: center;
-}
-
-.placeholder-text {
-	color: #999;
-	font-size: 28rpx;
-	margin-top: 20rpx;
-}
 
 /* 筛选栏样式 */
 .filter-bar {

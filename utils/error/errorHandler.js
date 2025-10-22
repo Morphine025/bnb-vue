@@ -32,7 +32,13 @@ export const handleError = (error, context = '', options = {}) => {
     message: error.message || '未知错误',
     type: error.type || ErrorTypes.UNKNOWN_ERROR,
     code: error.code || 'UNKNOWN',
-    context: typeof context === 'string' ? context : JSON.stringify(context),
+    context: typeof context === 'string' ? context : (() => {
+      try {
+        return JSON.stringify(context)
+      } catch (e) {
+        return String(context)
+      }
+    })(),
     timestamp: new Date().toISOString()
   }
 
