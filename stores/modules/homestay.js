@@ -345,8 +345,10 @@ export const useHomestayStore = defineStore('homestay', () => {
       // 验证API响应数据
       const apiValidationResult = validateApiResponse(response)
       if (apiValidationResult.isValid) {
-        const newList = apiValidationResult.data.list || []
-        console.log('📡 API返回数据:', newList.length, '条')
+        const responseData = apiValidationResult.data
+        const newList = responseData.list || []
+        const total = responseData.total || 0
+        console.log('📡 API返回数据:', newList.length, '条，总数:', total)
         
         // 数据去重 - 避免重复数据
         const existingIds = new Set(homestayList.value.map(item => item.homestayId || item.id))
@@ -359,17 +361,13 @@ export const useHomestayStore = defineStore('homestay', () => {
           // 直接添加原始数据，让computed处理映射
           appendHomestayList(uniqueNewList)
           console.log('✅ 数据已添加到homestayList，当前总数:', homestayList.value.length)
-          // 修复：只有在不是首次加载时才增加页码
-          if (homestayList.value.length > uniqueNewList.length) {
-            setCurrentPage(currentPage.value + 1)
-          } else {
-            setCurrentPage(pageToLoad)
-          }
+          // 修复页码管理逻辑：统一设置为当前加载的页码
+          setCurrentPage(pageToLoad)
           
           // 缓存数据 - 使用新的实时数据类型
           const cacheData = {
             list: uniqueNewList,
-            hasMore: newList.length === pageSize.value,
+            hasMore: homestayList.value.length < total,
             page: pageToLoad,
             filterConditions: filterConditions.value,
             timestamp: Date.now()
@@ -377,7 +375,8 @@ export const useHomestayStore = defineStore('homestay', () => {
           cacheStore.setCache(cacheKey, cacheData, { dataType: 'realtime' })
         }
         
-        setHasMore(newList.length === pageSize.value)
+        // 修复hasMore逻辑：使用总数来判断是否还有更多数据
+        setHasMore(homestayList.value.length < total)
       } else {
         console.log('❌ API返回数据格式错误或为空')
         setHasMore(false)

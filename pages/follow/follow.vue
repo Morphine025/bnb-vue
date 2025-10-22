@@ -15,185 +15,24 @@
 		<scroll-view 
 			class="content-area" 
 			scroll-y="true"
+			:scroll-top="toTopRef?.scrollTop || 0"
 			@scrolltolower="loadMore"
+			@scroll="onScrollViewScroll"
 		>
-			<!-- 双排瀑布流布局 -->
-			<up-waterfall v-if="!isSingleColumn && followList.length > 0" v-model="followList" ref="uWaterfallRef" :add-time="100" :column-count="2" :column-width="320" :column-gap="20" :show-scrollbar="false">
-				<template v-slot:left="{leftList}">
-					<view class="post-card" v-for="(item,index) in leftList" :key="index" @click="goDetail(item)">
-						<!-- 帖子图片 -->
-						<view class="post-image">
-							<image :src="item.img" mode="widthFix" class="post-img" @error="handleImageError($event, item, index)"></image>
-							<!-- 位置信息 -->
-							<view class="location-overlay" v-if="item.location">
-								<up-icon name="map" size="14" color="#fff"></up-icon>
-								<text class="location-text">{{item.location}}</text>
-							</view>
-						</view>
-						
-						<!-- 帖子内容 -->
-						<view class="post-content">
-							<view class="post-title">{{item.title}}</view>
-							<view class="post-summary" v-if="item.introduce">{{item.introduce}}</view>
-							
-							<!-- 价格和基本信息 -->
-							<view class="post-info">
-								<view class="price-tag">
-									<text class="price-symbol">¥</text>
-									<text class="price-number">{{formatPrice(item.price)}}</text>
-								</view>
-								<!-- 点赞收藏统计 -->
-								<view class="interaction-stats">
-									<view class="stat-item">
-										<up-icon name="heart-fill" size="14" color="#ff4757"></up-icon>
-										<text class="stat-count">{{item.likes || 0}}</text>
-									</view>
-									<view class="stat-item">
-										<up-icon name="star-fill" size="14" color="#ffa502"></up-icon>
-										<text class="stat-count">{{item.supports || 0}}</text>
-									</view>
-								</view>
-							</view>
-							
-							<!-- 用户信息和互动 -->
-							<view class="post-footer">
-								<view class="user-info">
-									<view class="avatar">
-										<image :src="item.avatar || '/static/logo.png'" mode="aspectFill"></image>
-									</view>
-									<view class="user-details">
-										<text class="username">{{item.author}}</text>
-									</view>
-								</view>
-							</view>
-						</view>
-					</view>
-				</template>
-				
-				<template v-slot:right="{rightList}">
-					<view class="post-card" v-for="(item,index) in rightList" :key="index" @click="goDetail(item)">
-						<!-- 帖子图片 -->
-						<view class="post-image">
-							<image :src="item.img" mode="widthFix" class="post-img" @error="handleImageError($event, item, index)"></image>
-							<!-- 位置信息 -->
-							<view class="location-overlay" v-if="item.location">
-								<up-icon name="map" size="14" color="#fff"></up-icon>
-								<text class="location-text">{{item.location}}</text>
-							</view>
-						</view>
-						
-						<!-- 帖子内容 -->
-						<view class="post-content">
-							<view class="post-title">{{item.title}}</view>
-							<view class="post-summary" v-if="item.introduce">{{item.introduce}}</view>
-							
-							<!-- 价格和基本信息 -->
-							<view class="post-info">
-								<view class="price-tag">
-									<text class="price-symbol">¥</text>
-									<text class="price-number">{{formatPrice(item.price)}}</text>
-								</view>
-								<!-- 点赞收藏统计 -->
-								<view class="interaction-stats">
-									<view class="stat-item">
-										<up-icon name="heart-fill" size="14" color="#ff4757"></up-icon>
-										<text class="stat-count">{{item.likes || 0}}</text>
-									</view>
-									<view class="stat-item">
-										<up-icon name="star-fill" size="14" color="#ffa502"></up-icon>
-										<text class="stat-count">{{item.supports || 0}}</text>
-									</view>
-								</view>
-							</view>
-							
-							<!-- 用户信息和互动 -->
-							<view class="post-footer">
-								<view class="user-info">
-									<view class="avatar">
-										<image :src="item.avatar || '/static/logo.png'" mode="aspectFill"></image>
-									</view>
-									<view class="user-details">
-										<text class="username">{{item.author || 'Asuka'}}</text>
-									</view>
-								</view>
-							</view>
-						</view>
-					</view>
-				</template>
-			</up-waterfall>
-			
-			<!-- 单排列表布局 -->
-			<view v-else-if="isSingleColumn && followList.length > 0" class="single-column-list">
-				<view class="single-card" v-for="(item,index) in followList" :key="index" @click="goDetail(item)">
-					<!-- 上半部分：图片和内容 -->
-					<view class="single-top">
-						<!-- 左侧图片区域 -->
-						<view class="single-image">
-							<image :src="item.img" mode="aspectFill" class="single-img" @error="handleImageError($event, item, index)"></image>
-							<!-- 位置信息覆盖在图片上 -->
-							<view class="location-overlay" v-if="item.location">
-								<up-icon name="map" size="14" color="#fff"></up-icon>
-								<text class="location-text">{{item.location}}</text>
-							</view>
-						</view>
-						
-						<!-- 右侧内容区域 -->
-						<view class="single-content">
-							<!-- 标题 -->
-							<view class="single-title">{{item.title}}</view>
-							
-							<!-- 详细信息 -->
-							<view class="single-details" v-if="item.introduce">{{item.introduce}}</view>
-							
-						<!-- 底部三个元素：金额、喜欢、收藏 -->
-						<view class="single-actions">
-							<view class="action-item">
-								<text class="action-value price-value">¥{{formatPrice(item.price)}}</text>
-							</view>
-							<view class="action-item">
-								<up-icon name="heart-fill" size="16" color="#ff4757"></up-icon>
-								<text class="action-value">{{item.likes || 0}}</text>
-							</view>
-							<view class="action-item">
-								<up-icon name="star-fill" size="16" color="#ffa502"></up-icon>
-								<text class="action-value">{{item.supports || 0}}</text>
-							</view>
-						</view>
-						</view>
-					</view>
-					
-					<!-- 底部用户信息区域 -->
-					<view class="single-footer">
-						<view class="single-avatar">
-							<image :src="item.avatar || '/static/logo.png'" mode="aspectFill"></image>
-						</view>
-						<view class="single-username">{{item.author || 'Asuka'}}</view>
-						<view class="single-views">
-							<up-icon name="eye" size="14" color="#999"></up-icon>
-							<text class="views-text">{{item.viewCount || 0}}</text>
-						</view>
-					</view>
-				</view>
-			</view>
-			
-			<!-- 空状态 -->
-			<view v-else-if="!isLoading && followList.length === 0" class="empty-state">
-				<view class="empty-icon">👥</view>
-				<view class="empty-title">暂无关注用户</view>
-				<view class="empty-desc">关注一些用户，查看他们的最新动态</view>
-			</view>
-			
-			<!-- 加载状态 -->
-			<view v-if="isLoading" class="loading-state">
-				<up-loading-icon mode="circle" size="24" color="#667eea"></up-loading-icon>
-				<text class="loading-text">加载中...</text>
-			</view>
+			<!-- 民宿列表 -->
+			<HomestayList 
+				:list="followList"
+				:is-single-column="isSingleColumn"
+				:is-loading="isLoading"
+				empty-text="暂无关注用户"
+				@loadmore="loadMore"
+				@item-click="goDetail"
+				@image-error="handleImageError"
+			/>
 		</scroll-view>
 		
-		<!-- 回到顶部按钮 -->
-		<view v-if="showTopBtn" @click="toTop" class="back-to-top">
-			<up-icon name="arrow-upward" color="#fff" size="28"></up-icon>
-		</view>
+		<!-- 回到顶部组件 -->
+		<ToTop ref="toTopRef" />
 	</view>
 </template>
 
@@ -212,7 +51,6 @@
 		onLoad,
 		onShow,
 		onReachBottom,
-		onPageScroll,
 		onPullDownRefresh
 	} from '@dcloudio/uni-app'
 	
@@ -226,12 +64,19 @@
 	
 	// 导入价格格式化工具
 	import { formatPrice } from '@/utils'
+	
+	// 导入回到顶部组件
+	import ToTop from '../../components/ToTop.vue'
+	
+	// 导入HomestayList组件
+	import HomestayList from '../../components/HomestayList/index.vue'
 
 	// 响应式数据定义
 	const followList = ref([]) // 关注用户发布信息列表
-	const showTopBtn = ref(0) // 控制回到顶部按钮显示
 	const uWaterfallRef = ref(null) // 瀑布流组件引用
 	const isSingleColumn = ref(false) // 是否为单列布局
+	// 回到顶部功能已移至ToTop组件
+	const toTopRef = ref(null)  // ToTop组件引用
 	
 	// 从本地存储读取布局偏好
 	const loadLayoutPreference = () => {
@@ -598,22 +443,15 @@
 		event.target.src = '/static/logo.png'
 	}
 	
+	// 回到顶部功能已移至ToTop组件
 	/**
-	 * 回到顶部
+	 * scroll-view滚动监听
 	 */
-	const toTop = () => {
-		uni.pageScrollTo({
-			scrollTop: 0,
-			duration: 300
-		})
+	const onScrollViewScroll = (e) => {
+		if (toTopRef.value && toTopRef.value.onScrollViewScroll) {
+			toTopRef.value.onScrollViewScroll(e)
+		}
 	}
-	
-	/**
-	 * 页面滚动监听
-	 */
-	onPageScroll((e) => {
-		showTopBtn.value = e.scrollTop > 500 ? 1 : 0
-	})
 </script>
 
 <style lang="scss" scoped>
@@ -1038,25 +876,5 @@
 		color: #666;
 	}
 
-	/* 回到顶部按钮 */
-	.back-to-top {
-		position: fixed;
-		bottom: 120rpx;
-		right: 30rpx;
-		width: 80rpx;
-		height: 80rpx;
-		background: #667eea;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
-		z-index: 999;
-		transition: all 0.3s ease;
-	}
-
-	.back-to-top:active {
-		transform: scale(0.9);
-		background: #5a6fd8;
-	}
+	/* 回到顶部按钮样式已移至ToTop组件 */
 </style>

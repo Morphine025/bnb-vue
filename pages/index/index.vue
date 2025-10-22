@@ -8,9 +8,12 @@
 		<scroll-view 
 			class="content-area" 
 			scroll-y="true"
+			:scroll-top="toTopRef?.scrollTop || 0"
 			:refresher-enabled="true"
 			:refresher-triggered="isRefreshing"
 			@refresherrefresh="onRefresherRefresh"
+			@scroll="onScrollViewScroll"
+			@scrolltolower="loadMore"
 		>
 			<!-- 轮播图组件 -->
 			<BannerCarousel :bannerList="bannerList" />
@@ -20,7 +23,7 @@
 				<!-- 地址选择器 -->
 				<view class="filter-item address-filter" @click="showAddressPicker">
 					<up-icon name="arrow-down" size="12" color="#999"></up-icon>
-					<text class="filter-text">{{ selectedAddress || '选择地址' }}</text>
+					<text class="filter-text">{{ selectedAddress || '全国' }}</text>
 				</view>
 				<!-- 布局切换按钮 -->
 				<view class="filter-item layout-toggle" @click="toggleLayout">
@@ -29,218 +32,26 @@
 			</view>
 			
 			<!-- 民宿列表 -->
-			<view class="homestay-list-container">
-				<!-- 双排瀑布流布局 -->
-				<up-waterfall 
-					v-if="!isSingleColumn && fallList.length > 0" 
-					v-model="fallList"
-					ref="uWaterfallRef" 
-					:add-time="100" 
-					:column-count="2"
-					:column-width="320"
-					:column-gap="20"
-					:show-scrollbar="false"
-					@loadmore="loadMore"
-				>
-					<template v-slot:left="{ leftList }">
-						<view class="post-card" v-for="(item, index) in leftList" :key="index" @click="goDetail(item)">
-							<view class="post-image">
-								<image :src="getImageUrl(item.img)" mode="widthFix" class="post-img" @error="handleImageError"></image>
-								<view class="location-overlay" v-if="item.city || item.location">
-									<up-icon name="map" size="14" color="#fff"></up-icon>
-									<text class="location-text">{{ item.city || item.location }}</text>
-								</view>
-							</view>
-								<view class="post-content">
-									<view class="post-title">{{ item.title }}</view>
-									<view class="post-summary" v-if="item.introduce">{{ item.introduce }}</view>
-									
-									<!-- 价格与点赞收藏，与关注页保持一致 -->
-									<view class="post-info">
-										<view class="price-tag">
-											<text class="price-symbol">¥</text>
-											<text class="price-number">{{ formatPrice(item.price) }}</text>
-										</view>
-										<view class="interaction-stats">
-											<view class="stat-item">
-												<up-icon name="heart-fill" size="14" color="#ff4757"></up-icon>
-												<text class="stat-count">{{ item.likes || 0 }}</text>
-											</view>
-											<view class="stat-item">
-												<up-icon name="star-fill" size="14" color="#ffa502"></up-icon>
-												<text class="stat-count">{{ item.supports || 0 }}</text>
-											</view>
-										</view>
-									</view>
-								
-								<!-- 用户信息和互动 -->
-								<view class="post-footer">
-									<view class="user-info">
-										<view class="avatar">
-											<image :src="getImageUrl(item.avatar)" mode="aspectFill"></image>
-										</view>
-										<view class="user-details">
-											<text class="username">{{ item.author || 'Asuka' }}</text>
-										</view>
-									</view>
-								</view>
-							</view>
-						</view>
-					</template>
-					<template v-slot:right="{ rightList }">
-						<view class="post-card" v-for="(item, index) in rightList" :key="index" @click="goDetail(item)">
-							<view class="post-image">
-								<image :src="getImageUrl(item.img)" mode="widthFix" class="post-img" @error="handleImageError"></image>
-								<view class="location-overlay" v-if="item.city || item.location">
-									<up-icon name="map" size="14" color="#fff"></up-icon>
-									<text class="location-text">{{ item.city || item.location }}</text>
-								</view>
-							</view>
-							<view class="post-content">
-								<view class="post-title">{{ item.title }}</view>
-								<view class="post-summary" v-if="item.introduce">{{ item.introduce }}</view>
-								
-								<!-- 价格与点赞收藏，与关注页保持一致 -->
-								<view class="post-info">
-									<view class="price-tag">
-										<text class="price-symbol">¥</text>
-										<text class="price-number">{{ formatPrice(item.price) }}</text>
-									</view>
-									<view class="interaction-stats">
-										<view class="stat-item">
-											<up-icon name="heart-fill" size="14" color="#ff4757"></up-icon>
-											<text class="stat-count">{{ item.likes || 0 }}</text>
-										</view>
-										<view class="stat-item">
-											<up-icon name="star-fill" size="14" color="#ffa502"></up-icon>
-											<text class="stat-count">{{ item.supports || 0 }}</text>
-										</view>
-									</view>
-								</view>
-								
-								<!-- 用户信息和互动 -->
-								<view class="post-footer">
-									<view class="user-info">
-										<view class="avatar">
-											<image :src="getImageUrl(item.avatar)" mode="aspectFill"></image>
-										</view>
-										<view class="user-details">
-											<text class="username">{{ item.author || 'Asuka' }}</text>
-										</view>
-									</view>
-								</view>
-							</view>
-						</view>
-					</template>
-				</up-waterfall>
-				
-				<!-- 单排列表布局 -->
-				<view v-else-if="isSingleColumn && fallList.length > 0" class="single-column-list">
-					<view class="single-card" v-for="(item, index) in fallList" :key="index" @click="goDetail(item)">
-						<!-- 上半部分：图片和内容 -->
-						<view class="single-top">
-							<!-- 左侧图片区域 -->
-							<view class="single-image">
-								<image :src="getImageUrl(item.img)" mode="aspectFill" class="single-img" @error="handleImageError($event, item, index)"></image>
-								<!-- 位置信息覆盖在图片上 -->
-								<view class="location-overlay" v-if="item.city || item.location">
-									<up-icon name="map" size="14" color="#fff"></up-icon>
-									<text class="location-text">{{ item.city || item.location }}</text>
-								</view>
-							</view>
-							
-							<!-- 右侧内容区域 -->
-							<view class="single-content">
-								<!-- 标题 -->
-								<view class="single-title">{{ item.title }}</view>
-								
-								<!-- 详细信息 -->
-								<view class="single-details" v-if="item.introduce">{{ item.introduce }}</view>
-								
-								<!-- 底部三个元素：金额、喜欢、收藏 -->
-								<view class="single-actions">
-									<view class="action-item">
-										<text class="action-value price-value">¥{{ formatPrice(item.price) }}</text>
-									</view>
-									<view class="action-item">
-										<up-icon name="heart-fill" size="16" color="#ff4757"></up-icon>
-										<text class="action-value">{{ item.likes || 0 }}</text>
-									</view>
-									<view class="action-item">
-										<up-icon name="star-fill" size="16" color="#ffa502"></up-icon>
-										<text class="action-value">{{ item.supports || 0 }}</text>
-									</view>
-								</view>
-							</view>
-						</view>
-						
-						<!-- 底部用户信息区域 -->
-						<view class="single-footer">
-							<view class="single-avatar">
-								<image :src="item.avatar || '/static/logo.png'" mode="aspectFill"></image>
-							</view>
-							<view class="single-username">{{ item.author || 'Asuka' }}</view>
-							<view class="single-views">
-								<up-icon name="eye" size="14" color="#999"></up-icon>
-								<text class="views-text">{{ item.viewCount || 0 }}</text>
-							</view>
-						</view>
-					</view>
-				</view>
-				
-				<!-- 空状态 -->
-				<view v-if="fallList.length === 0 && !isLoading" class="empty-state">
-					<up-icon name="inbox" size="80" color="#ccc"></up-icon>
-					<text class="empty-text">暂无数据</text>
-				</view>
-				
-				<!-- 加载状态 -->
-				<view v-if="isLoading" class="loading-state">
-					<up-loading-icon mode="circle" size="40" color="#667eea"></up-loading-icon>
-					<text class="loading-text">加载中...</text>
-				</view>
-			</view>
+			<HomestayList 
+				:list="fallList"
+				:is-single-column="isSingleColumn"
+				:is-loading="isLoading"
+				empty-text="当前城市暂无信息"
+				@loadmore="loadMore"
+				@item-click="goDetail"
+				@image-error="handleImageError"
+			/>
 		</scroll-view>
+		<!-- 地址选择器组件 -->
+		<AddressPicker 
+			:show="showAddressPickerPopup"
+			:selected-address="selectedAddress"
+			@confirm="handleAddressConfirm"
+			@close="closeAddressPicker"
+		/>
 		
-
-		<!-- 双列选择器 -->
-		<view v-if="showAddressPickerPopup" class="region-picker-overlay" @click="closeAddressPicker">
-			<view class="region-picker-modal" @click.stop>
-				<!-- 双列选择区域 -->
-				<view class="picker-content">
-					<!-- 左侧省份列表 -->
-				<view class="left-column">
-						<template v-if="provinceList.length > 0">
-							<view class="region-option" 
-								v-for="province in provinceList" 
-								:key="province.code"
-								:class="{ active: selectedProvince && selectedProvince.code === province.code }"
-								@click="selectProvince(province)"
-							>
-								<text class="region-text">{{ province.name }}</text>
-							</view>
-						</template>
-					</view>
-					
-					<!-- 右侧城市/区县列表 -->
-					<view class="right-column">
-						<template v-if="cityList.length > 0">
-							<view class="region-option" 
-								v-for="city in cityList" 
-								:key="city.code"
-								:class="{ active: selectedCity && selectedCity.code === city.code }"
-								@click="selectCity(city)"
-							>
-								<text class="region-text">{{ city.name }}</text>
-							</view>
-						</template>
-						<view v-else-if="!selectedProvince" class="region-option">
-							<text class="region-text">请选择省份</text>
-						</view>
-					</view>
-				</view>
-			</view>
-		</view>
+		<!-- 回到顶部组件 -->
+		<ToTop ref="toTopRef" />
 	</view>
 </template>
 
@@ -249,12 +60,21 @@
  * 首页组件 - 民宿展示首页
  * 
  * 主要功能：
- * 1. 轮播图展示
- * 2. 民宿列表展示（支持瀑布流和单列布局）
- * 3. 地址筛选
- * 4. 搜索功能
- * 5. 下拉刷新和上拉加载
- * 6. 缓存管理
+ * 1. 轮播图展示 - 支持自动播放、指示器、点击事件
+ * 2. 民宿列表展示 - 支持瀑布流和单列布局切换
+ * 3. 地址筛选 - 支持省市区三级联动选择
+ * 4. 搜索功能 - 跳转到搜索页面
+ * 5. 下拉刷新和上拉加载 - 支持数据刷新和分页加载
+ * 6. 缓存管理 - 智能缓存策略，提升用户体验
+ * 7. 布局管理 - 用户偏好记忆，支持单列/双列切换
+ * 8. 图片处理 - 智能图片URL转换和错误处理
+ * 
+ * 技术特点：
+ * - 使用Vue 3 Composition API
+ * - 集成Pinia状态管理
+ * - 支持响应式布局
+ * - 优化性能的虚拟滚动
+ * - 智能缓存策略
  */
 
 // ==================== 导入模块 ====================
@@ -262,18 +82,20 @@
 // 导入API接口
 import { API } from '../../api'
 
+// 导入组件
+import HomestayList from '../../components/HomestayList/index.vue'
+
 // 导入uni-app生命周期钩子
 import {
 	onLoad,      // 页面加载
-	onShow,       // 页面显示
-	onReachBottom, // 触底加载
-	onPageScroll,  // 页面滚动
+	onShow       // 页面显示
 } from '@dcloudio/uni-app'
 
 // 导入Vue响应式API
 import {
 	ref,        // 响应式引用
-	computed    // 计算属性
+	computed,   // 计算属性
+	watch       // 监听器
 } from 'vue'
 
 // 导入Pinia状态管理
@@ -283,12 +105,13 @@ import {
 } from '../../stores'
 
 // 导入工具函数
-import { formatPrice } from '@/utils'  // 价格格式化
 import { convertToHttps } from '@/utils/security/urlConverter'  // URL安全转换
 
 // 导入组件
 import HeaderSearch from './components/HeaderSearch.vue'
 import BannerCarousel from './components/BannerCarousel.vue'
+import AddressPicker from './components/AddressPicker.vue'
+import ToTop from '../../components/ToTop.vue'
 
 
 // ==================== 状态管理 ====================
@@ -300,44 +123,47 @@ const cacheStore = useCacheStore()            // 缓存管理
 
 // ==================== 响应式数据定义 ====================
 
-// 搜索相关 - 仅保留跳转功能
+/**
+ * 轮播图相关数据
+ */
+const bannerList = ref([])                    // 轮播图数据列表
 
-// 轮播图相关
-const bannerList = ref([])                    // 轮播图数据
+/**
+ * UI状态管理
+ */
+const isSingleColumn = ref(false)            // 是否为单列布局（false=瀑布流，true=单列）
+const isRefreshing = ref(false)              // 是否正在下拉刷新
+const toTopRef = ref(null)                   // 回到顶部组件引用
 
-// UI状态
-const isSingleColumn = ref(false)            // 是否为单列布局
-const isPageLoaded = ref(false)              // 页面是否已加载
-const isRefreshing = ref(false)              // 是否正在刷新
-
-// 地址选择相关
-const selectedAddress = ref('')               // 选中的地址
-const showAddressPickerPopup = ref(false)    // 是否显示地址选择器
-const provinceList = ref([])                 // 省份列表
-const cityList = ref([])                     // 城市列表
-const selectedProvince = ref(null)           // 选中的省份
-const selectedCity = ref(null)               // 选中的城市
-const loadingProvinces = ref(false)          // 是否正在加载省份数据
+/**
+ * 地址选择相关状态
+ */
+const selectedAddress = ref('')               // 当前选中的地址文本
+const showAddressPickerPopup = ref(false)    // 是否显示地址选择器弹窗
 
 // ==================== 计算属性 ====================
 
-// 从Store获取民宿数据
+/**
+ * 民宿列表数据
+ * 从Store获取处理后的民宿数据，包含图片URL转换等处理
+ */
 const fallList = computed(() => {
 	const data = homestayListStore.processedHomestayList || []
 	return data
 })
 
-// 加载状态
-const isLoading = computed(() => homestayListStore.isLoading)    // 是否正在加载
-const hasMore = computed(() => homestayListStore.hasMore)        // 是否还有更多数据
-const currentPage = computed(() => homestayListStore.currentPage) // 当前页码
+/**
+ * 加载状态管理
+ */
+const isLoading = computed(() => homestayListStore.isLoading)    // 是否正在加载数据
+const hasMore = computed(() => homestayListStore.hasMore)        // 是否还有更多数据可加载
 
 
 // ==================== 布局管理 ====================
 
 /**
- * 从本地存储读取布局偏好
- * 用户可以选择单列或双列瀑布流布局
+ * 从本地存储读取用户布局偏好
+ * 用户可以选择单列或双列瀑布流布局，偏好会被记住
  */
 const loadLayoutPreference = () => {
 	try {
@@ -351,8 +177,8 @@ const loadLayoutPreference = () => {
 }
 
 /**
- * 保存布局偏好到本地存储
- * 记住用户的选择，下次打开时恢复
+ * 保存用户布局偏好到本地存储
+ * 记住用户的选择，下次打开应用时自动恢复
  */
 const saveLayoutPreference = () => {
 	try {
@@ -364,7 +190,7 @@ const saveLayoutPreference = () => {
 
 /**
  * 切换布局模式
- * 在单列列表和双列瀑布流之间切换
+ * 在单列列表和双列瀑布流之间切换，并保存用户偏好
  */
 const toggleLayout = () => {
 	isSingleColumn.value = !isSingleColumn.value
@@ -375,81 +201,68 @@ const toggleLayout = () => {
 // ==================== 地址选择功能 ====================
 
 /**
- * 显示地址选择器
- * 打开省市区选择弹窗
+ * 显示地址选择器弹窗
+ * 打开省市区三级联动选择器
  */
 const showAddressPicker = () => {
 	showAddressPickerPopup.value = true
-	loadProvinces()
 }
 
 /**
- * 关闭地址选择器
+ * 关闭地址选择器弹窗
  */
 const closeAddressPicker = () => {
 	showAddressPickerPopup.value = false
 }
 
 /**
- * 选择省份
- * @param {Object} province - 省份对象
+ * 处理地址选择确认事件
+ * 根据选择的地址更新筛选条件，清除缓存并刷新数据
+ * @param {Object} data - 地址数据对象，包含address、cityName等字段
  */
-const selectProvince = (province) => {
-    selectedProvince.value = province
-    loadCities(province.code)
-}
-
-/**
- * 选择城市
- * @param {Object} city - 城市对象
- */
-const selectCity = (city) => {
-	selectedCity.value = city
-	selectedAddress.value = `${selectedProvince.value.name} ${city.name}`
+const handleAddressConfirm = async (data) => {
+	console.log('🎯 地址选择确认:', data)
+	selectedAddress.value = data.address
+	
+	// 根据选择的地址更新筛选条件
+	if (data.address === '全国') {
+		// 选择全国时，清除location筛选条件
+		homestayListStore.setFilterConditions({
+			location: ''
+		})
+		console.log('🌍 选择全国，清除地区筛选')
+	} else {
+		// 选择具体地区时，使用城市名称进行筛选
+		const cityName = data.cityName || data.city?.name || data.address
+		homestayListStore.setFilterConditions({
+			location: cityName
+		})
+		console.log('📍 选择具体地区:', cityName)
+	}
+	
+	console.log('📍 更新筛选条件:', homestayListStore.filterConditions)
+	
+	// 强制清除所有相关缓存，避免缓存污染
+	homestayListStore.clearHomestayList()
+	homestayListStore.clearCache()
+	
+	// 额外清除页面级别的缓存
+	cacheStore.clearCacheByDataType('homestay-list')
+	cacheStore.clearCacheByDataType('banner')
+	
+	// 强制刷新页面数据
+	console.log('🔄 开始强制刷新民宿列表...')
+	await homestayListStore.refreshHomestayList()
+	console.log('✅ 民宿列表刷新完成，当前数据:', homestayListStore.homestayList.length, '条')
+	
 	closeAddressPicker()
-	loadHomestayList()
 }
 
 // ==================== 数据加载功能 ====================
 
 /**
- * 加载省份数据
- * 从API获取省份列表，避免重复加载
- */
-const loadProvinces = async () => {
-	if (loadingProvinces.value || provinceList.value.length > 0) return
-	
-	loadingProvinces.value = true
-	try {
-		const response = await API.region.getProvinces()
-		if (response && response.data) {
-			provinceList.value = response.data
-		}
-	} catch (error) {
-		console.error('加载省份数据失败:', error)
-	} finally {
-		loadingProvinces.value = false
-	}
-}
-
-/**
- * 加载城市数据
- * @param {string} provinceCode - 省份代码
- */
-const loadCities = async (provinceCode) => {
-	try {
-		const response = await API.region.getCitiesByProvince(provinceCode)
-		if (response && response.data) {
-			cityList.value = response.data
-		}
-	} catch (error) {
-		console.error('加载城市数据失败:', error)
-	}
-}
-
-/**
- * 加载民宿列表
- * 从Store加载民宿数据
+ * 加载民宿列表数据
+ * 从Store加载民宿数据，支持缓存策略
  */
 const loadHomestayList = async () => {
 	try {
@@ -460,14 +273,24 @@ const loadHomestayList = async () => {
 }
 
 /**
- * 加载更多数据
- * 触底加载更多民宿数据
+ * 加载更多数据（触底加载）
+ * 当用户滚动到底部时自动触发，支持防重复加载
  */
 const loadMore = async () => {
-	if (isLoading.value || !hasMore.value) return
+	console.log('🔄 index页面loadMore被调用')
+	console.log('   - isLoading:', isLoading.value)
+	console.log('   - hasMore:', hasMore.value)
+	
+	// 防重复加载：如果正在加载或没有更多数据，则跳过
+	if (isLoading.value || !hasMore.value) {
+		console.log('   - 跳过加载：isLoading或hasMore为false')
+		return
+	}
 	
 	try {
+		console.log('   - 开始加载更多数据...')
 		await homestayListStore.loadMoreHomestays()
+		console.log('   - 加载更多数据完成')
 	} catch (error) {
 		console.error('加载更多数据失败:', error)
 	}
@@ -476,20 +299,9 @@ const loadMore = async () => {
 // ==================== 图片处理功能 ====================
 
 /**
- * 智能图片URL处理
- * 将HTTP转换为HTTPS，处理默认图片
- * @param {string} url - 原始图片URL
- * @returns {string} 处理后的安全URL
- */
-const getImageUrl = (url) => {
-	if (!url) return '/static/logo.png'
-	return convertToHttps(url)
-}
-
-/**
  * 图片加载错误处理
- * 智能降级处理，支持HTTP/HTTPS协议切换
- * @param {Object} errorData - 错误数据对象
+ * 智能降级处理，支持HTTP/HTTPS协议切换，提升图片加载成功率
+ * @param {Object} errorData - 错误数据对象，包含target.src等信息
  */
 const handleImageError = (errorData) => {
 	// 使用智能错误处理
@@ -514,7 +326,8 @@ const handleImageError = (errorData) => {
 
 /**
  * 跳转到民宿详情页
- * @param {Object} item - 民宿数据对象
+ * 传递民宿ID参数，支持详情页数据加载
+ * @param {Object} item - 民宿数据对象，包含id字段
  */
 const goDetail = (item) => {
 	uni.navigateTo({
@@ -522,16 +335,17 @@ const goDetail = (item) => {
 	})
 }
 
+// 回到顶部功能已移至ToTop组件
+
 
 // ==================== 滚动和刷新功能 ====================
 
-
-
 /**
  * scroll-view 下拉刷新处理
- * 清除缓存并重新加载数据
+ * 清除缓存并重新加载数据，支持轮播图和民宿列表的完整刷新
  */
 const onRefresherRefresh = async () => {
+    // 防重复刷新
     if (isRefreshing.value) return
     isRefreshing.value = true
     
@@ -540,10 +354,10 @@ const onRefresherRefresh = async () => {
         cacheStore.clearCacheByDataType('homestay-list')
         cacheStore.clearCacheByDataType('banner')
         
-        // 刷新数据
+        // 刷新民宿列表数据
         await homestayListStore.refreshHomestayList()
         
-        // 重新加载轮播图
+        // 重新加载轮播图数据
         const bannerResponse = await API.homestay.getBanner()
         if (bannerResponse && bannerResponse.data) {
             bannerList.value = bannerResponse.data
@@ -561,10 +375,11 @@ const onRefresherRefresh = async () => {
 
 /**
  * 页面加载时触发
- * 初始化页面数据，处理缓存逻辑
- * @param {Object} options - 页面参数
+ * 初始化页面数据，处理缓存逻辑，支持强制刷新参数
+ * @param {Object} options - 页面参数，支持forceRefresh强制刷新
  */
 onLoad(async (options) => {
+	// 加载用户布局偏好
 	loadLayoutPreference()
 	
 	// 检查是否需要强制刷新
@@ -572,7 +387,7 @@ onLoad(async (options) => {
 	const cacheAge = cacheStore.getCacheAge('homestay-list-1-{}')
 	
 	try {
-		// 加载轮播图
+		// 加载轮播图数据
 		const bannerResponse = await API.homestay.getBanner()
 		if (bannerResponse && bannerResponse.data) {
 			bannerList.value = bannerResponse.data
@@ -584,11 +399,10 @@ onLoad(async (options) => {
 			await homestayListStore.clearCache()
 			await loadHomestayList()
 		} else {
-			// 使用缓存
+			// 使用缓存数据
 			await loadHomestayList()
 		}
 		
-		isPageLoaded.value = true
 	} catch (error) {
 		console.error('首页初始化失败:', error)
 	}
@@ -596,7 +410,7 @@ onLoad(async (options) => {
 
 /**
  * 页面显示时触发
- * 启动数据同步检查，确保数据最新
+ * 启动数据同步检查，确保数据最新，支持后台返回时的数据更新
  */
 onShow(() => {
 	// 启动数据同步检查
@@ -608,12 +422,23 @@ onShow(() => {
 })
 
 /**
- * 触底加载更多
- * 当用户滚动到底部时自动加载更多数据
+ * scroll-view滚动监听
+ * 将滚动事件传递给ToTop组件处理
+ * @param {Object} e - 滚动事件对象
  */
-onReachBottom(() => {
-	loadMore()
-})
+const onScrollViewScroll = (e) => {
+	if (toTopRef.value && toTopRef.value.onScrollViewScroll) {
+		toTopRef.value.onScrollViewScroll(e)
+	}
+}
+
+/**
+ * 监听ToTop组件的scrollTop变化
+ * 用于调试和监控滚动状态
+ */
+watch(() => toTopRef.value?.scrollTop, (newVal) => {
+	console.log('📊 index页面 scrollTop变化:', newVal)
+}, { deep: true })
 
 
 </script>
@@ -621,15 +446,21 @@ onReachBottom(() => {
 <style scoped>
 /* ==================== 主容器样式 ==================== */
 
-/* 首页主容器 */
+/**
+ * 首页主容器
+ * 设置背景色和最小高度，确保页面完整显示
+ */
 .social-forum {
 	background: #f8f9fa;
 	min-height: 100vh;
 }
 
+/* ==================== 筛选栏样式 ==================== */
 
-
-/* 筛选栏样式 */
+/**
+ * 筛选栏容器
+ * 包含地址选择器和布局切换按钮
+ */
 .filter-bar {
     display: flex;
     align-items: center;
@@ -639,6 +470,10 @@ onReachBottom(() => {
     border-bottom: 1rpx solid #f0f0f0;
 }
 
+/**
+ * 筛选项通用样式
+ * 地址选择器和布局切换按钮的基础样式
+ */
 .filter-item {
     display: flex;
     align-items: center;
@@ -647,17 +482,29 @@ onReachBottom(() => {
     background: transparent;
 }
 
+/**
+ * 地址选择器样式
+ * 占据剩余空间，显示当前选中的地址
+ */
 .address-filter {
 	flex: 1;
 	margin-right: 20rpx;
 }
 
+/**
+ * 地址文本样式
+ * 显示当前选中的地址或默认文本
+ */
 .filter-text {
 	font-size: 28rpx;
 	color: #333;
 	margin-left: 10rpx;
 }
 
+/**
+ * 布局切换按钮样式
+ * 固定尺寸的切换按钮
+ */
 .layout-toggle {
     width: 80rpx;
     height: 60rpx;
@@ -665,389 +512,15 @@ onReachBottom(() => {
     background: transparent;
 }
 
-/* 民宿列表样式 */
+/* ==================== 内容区域样式 ==================== */
+
+/**
+ * 内容区域样式
+ * 设置高度和内边距，确保内容正确显示
+ */
 .content-area {
 	height: calc(100vh - 120rpx);
 	padding: 20rpx;
 	box-sizing: border-box;
-}
-
-.homestay-list-container {
-	width: 100%;
-}
-
-.single-column-list {
-	padding: 20rpx;
-	width: 100%;
-	box-sizing: border-box;
-}
-
-.single-card {
-	background: #fff;
-	border-radius: 20rpx;
-	margin-bottom: 20rpx;
-	overflow: hidden;
-	box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
-	transition: all 0.3s ease;
-	width: 100%;
-	box-sizing: border-box;
-}
-
-.single-top {
-	display: flex;
-	width: 100%;
-	box-sizing: border-box;
-}
-
-.single-image {
-	width: 300rpx;
-	min-height: 200rpx;
-	border-radius: 12rpx;
-	overflow: hidden;
-	position: relative;
-	flex-shrink: 0;
-	display: flex;
-	align-items: stretch;
-}
-
-.single-img {
-	width: 100%;
-	height: 100%;
-}
-
-.single-content {
-	flex: 1;
-	padding: 20rpx;
-	display: flex;
-	flex-direction: column;
-	justify-content: space-between;
-	min-width: 0;
-	overflow: hidden;
-}
-
-.single-title {
-	font-size: 32rpx;
-	font-weight: 600;
-	color: #333;
-	line-height: 1.4;
-	margin-bottom: 8rpx;
-	display: -webkit-box;
-	line-clamp: 2;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-	word-break: break-word;
-	width: 100%;
-}
-
-.single-details {
-	font-size: 24rpx;
-	color: #666;
-	line-height: 1.5;
-	margin-bottom: 16rpx;
-	display: -webkit-box;
-	line-clamp: 2;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-	word-break: break-word;
-	width: 100%;
-}
-
-.single-actions {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-top: auto;
-	width: 100%;
-	box-sizing: border-box;
-}
-
-.single-footer {
-	display: flex;
-	align-items: center;
-	padding: 20rpx;
-	border-top: 1rpx solid #f5f5f5;
-	background-color: #fafafa;
-	width: 100%;
-	box-sizing: border-box;
-}
-
-.single-avatar {
-	width: 40rpx;
-	height: 40rpx;
-	border-radius: 50%;
-	overflow: hidden;
-	margin-right: 12rpx;
-}
-
-.single-avatar image {
-	width: 100%;
-	height: 100%;
-}
-
-.single-username {
-	flex: 1;
-	font-size: 24rpx;
-	color: #333;
-	font-weight: 500;
-}
-
-.single-views {
-	display: flex;
-	align-items: center;
-}
-
-.views-text {
-	font-size: 22rpx;
-	color: #999;
-}
-
-/* 瀑布流卡片样式 */
-.post-card {
-    background: #fff;
-    border-radius: 16rpx;
-    overflow: hidden;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
-    margin-bottom: 20rpx;
-    transition: all 0.3s ease;
-}
-
-.post-image {
-    position: relative;
-    width: 100%;
-    overflow: hidden;
-}
-
-.post-img {
-    width: 100%;
-    display: block;
-}
-
-.location-overlay {
-    position: absolute;
-    bottom: 12rpx;
-    left: 12rpx;
-    background: rgba(0, 0, 0, 0.6);
-    padding: 6rpx 12rpx;
-    border-radius: 20rpx;
-    display: flex;
-    align-items: center;
-    gap: 6rpx;
-}
-
-.location-text {
-	color: #fff;
-	font-size: 24rpx;
-	margin-left: 8rpx;
-}
-
-.post-content {
-	padding: 24rpx;
-}
-
-.post-title {
-	font-size: 32rpx;
-	font-weight: bold;
-	color: #333;
-	margin-bottom: 15rpx;
-	line-height: 1.4;
-}
-
-.post-details {
-	font-size: 28rpx;
-	color: #666;
-	line-height: 1.5;
-	margin-bottom: 20rpx;
-}
-
-/* 关注页命名保持一致 */
-.post-summary {
-	font-size: 24rpx;
-	color: #666;
-	line-height: 1.5;
-	margin-bottom: 16rpx;
-	display: -webkit-box;
-	line-clamp: 2;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.post-actions {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 20rpx;
-}
-
-/* 关注页一致的价格/统计布局 */
-.post-info {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-bottom: 16rpx;
-}
-
-.price-tag {
-	display: flex;
-	align-items: baseline;
-	color: #ff4757;
-	font-weight: 600;
-}
-
-.price-symbol {
-	font-size: 24rpx;
-	margin-right: 4rpx;
-}
-
-.price-number {
-	font-size: 32rpx;
-	font-weight: 700;
-}
-
-.interaction-stats {
-	display: flex;
-	gap: 16rpx;
-}
-
-.stat-item {
-	display: flex;
-	align-items: center;
-	gap: 6rpx;
-}
-
-.stat-count {
-	font-size: 22rpx;
-	color: #666;
-}
-
-.action-item {
-	display: flex;
-	align-items: center;
-	gap: 6rpx;
-	flex-shrink: 0;
-}
-
-.action-value {
-	font-size: 22rpx;
-	color: #666;
-}
-
-.price-value {
-	font-size: 28rpx;
-	font-weight: 700;
-	color: #ff4757;
-}
-
-.post-footer {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-}
-
-.user-info {
-	display: flex;
-	align-items: center;
-}
-
-.avatar {
-	width: 60rpx;
-	height: 60rpx;
-	border-radius: 50%;
-	overflow: hidden;
-	margin-right: 15rpx;
-}
-
-.avatar image {
-	width: 100%;
-	height: 100%;
-}
-
-.user-details {
-	flex: 1;
-}
-
-.username {
-	font-size: 28rpx;
-	color: #333;
-}
-
-/* 空状态和加载状态 */
-.empty-state {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	padding: 100rpx 0;
-}
-
-.empty-text {
-	color: #999;
-	font-size: 28rpx;
-	margin-top: 20rpx;
-}
-
-.loading-state {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	padding: 100rpx 0;
-}
-
-.loading-text {
-	color: #999;
-	font-size: 28rpx;
-	margin-top: 20rpx;
-}
-
-
-/* 地址选择器样式 */
-.region-picker-overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	background: rgba(0, 0, 0, 0.5);
-	z-index: 1000;
-	display: flex;
-	align-items: flex-end;
-}
-
-.region-picker-modal {
-	width: 100%;
-	background: #fff;
-	border-radius: 20rpx 20rpx 0 0;
-	max-height: 80vh;
-}
-
-.picker-content {
-	display: flex;
-	height: 500rpx;
-}
-
-.left-column, .right-column {
-	flex: 1;
-	overflow-y: auto;
-}
-
-.region-option {
-	padding: 25rpx 30rpx;
-	border-bottom: 1rpx solid #f0f0f0;
-}
-
-.region-option.active {
-	background: #667eea;
-}
-
-.region-option.active .region-text {
-	color: #fff;
-}
-
-.region-text {
-	font-size: 28rpx;
-	color: #333;
 }
 </style>
