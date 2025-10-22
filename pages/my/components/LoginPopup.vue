@@ -41,17 +41,21 @@
  * 2. 昵称输入 - 支持微信小程序昵称输入
  * 3. 数据验证 - 验证用户输入的有效性
  * 4. 登录提交 - 处理登录数据提交
+ * 5. 临时文件处理 - 处理微信小程序临时文件
+ * 6. 错误处理 - 处理头像和昵称输入错误
  * 
  * 技术特点：
  * - 微信小程序原生支持
  * - 数据验证和错误处理
  * - 加载状态管理
  * - 事件传递机制
+ * - 临时文件处理
+ * - 协议转换
  */
 
 // ==================== 导入依赖 ====================
 
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { convertToHttps } from '@/utils/security/urlConverter'  // URL协议转换
 import { handleAvatarError } from '@/utils/ui/imageErrorHandler'  // 图片错误处理
 

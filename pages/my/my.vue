@@ -41,7 +41,21 @@
 	/**
 	 * 我的页面组件
 	 * 功能描述：用户个人信息展示、登录注册、功能菜单
-	 * 主要功能：用户登录、信息展示、统计数据、功能菜单、头像昵称设置
+	 * 主要功能：
+	 * 1. 用户登录 - 微信登录、头像昵称设置
+	 * 2. 信息展示 - 用户头像、昵称、统计数据
+	 * 3. 功能菜单 - 我的发布、设置、地址管理等
+	 * 4. 状态管理 - 登录状态、数据刷新、错误处理
+	 * 5. 页面导航 - 跳转到各个功能页面
+	 * 6. 数据同步 - 与服务器数据同步
+	 * 
+	 * 技术特点：
+	 * - Vue 3 Composition API
+	 * - Pinia状态管理
+	 * - 组件化设计
+	 * - 事件驱动
+	 * - 错误处理
+	 * - 数据验证
 	 */
 
 	// ==================== 导入依赖 ====================
@@ -66,8 +80,6 @@
 	} from '../../stores'
 	
 	// 工具函数
-	import { convertToHttps } from '@/utils/security/urlConverter'  // URL协议转换
-	import { handleAvatarError } from '@/utils/ui/imageErrorHandler'  // 图片错误处理
 	import { handleError, showError } from '@/utils/error/errorHandler'  // 统一错误处理
 	
 	// 组件导入
