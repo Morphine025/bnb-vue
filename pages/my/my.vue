@@ -1,32 +1,15 @@
 <template>
 	<view class="content">
-		<!-- 用户信息卡片区域 -->
-		<view class="topBox">
-			<view class="users">
-				<!-- 用户头像和昵称区域 -->
-				<view class="u-top" @click="loginUser">
-					<!-- 未登录状态：显示默认头像和登录提示 -->
-					<template v-if="!userInfo.nickName">
-						<image src='/static/unnamed.jpg' mode="aspectFill" />
-						<view class="tit">
-							注册 / 登录
-						</view>
-					</template>
-					<!-- 已登录状态：显示用户头像和昵称 -->
-					<template v-else>
-						<image :src='safeAvatarUrl' mode="aspectFill" @error="handleAvatarError" />
-						<view class="tit">
-							{{userInfo.nickName}}
-						</view>
-					</template>
-				</view>
-				<!-- 用户统计数据区域 -->
-				<UserStatsDisplay 
-					:user-stats="userStats"
-					@item-click="handleStatsItemClick"
-				/>
-			</view>
-		</view>
+		<!-- 页面背景和用户信息卡片区域 -->
+		<PageBackground>
+			<UserInfoCard 
+				:user-info="userInfo"
+				:user-stats="userStats"
+				@user-click="loginUser"
+				@stats-item-click="handleStatsItemClick"
+			/>
+		</PageBackground>
+		
 		<!-- 功能菜单区域 -->
 		<UserToolsMenu 
 			:menu-items="menuItems" 
@@ -41,32 +24,16 @@
 			@logout="logout"
 		/>
 		
-		<!-- 登录弹窗：获取用户头像和昵称 -->
-		<up-popup :show="show" @close="close" closeable round="20">
-			<view class="popup">
-				<view class="title">
-					获取头像与昵称
-				</view>
-				<!-- 头像选择区域 -->
-				<view class="flex">
-					<view class="label">
-						获取用户头像
-					</view>
-					<button class="avatar-warpper" open-type="chooseAvatar" @chooseavatar="onChooseavatar">
-						<image class="avatar" :src="safeAvatarUrl" @error="handleAvatarError"></image>
-					</button>
-				</view>
-				<!-- 昵称输入区域 -->
-				<view class="flex">
-					<view class="label">
-						获取用户昵称
-					</view>
-					<input @input="changeName" type="nickname" />
-				</view>
-				<!-- 确定按钮 -->
-				<button size="default" type="primary" @click="userSubmit">确定</button>
-			</view>
-		</up-popup>
+		<!-- 登录弹窗组件 -->
+		<LoginPopup 
+			:show="show" 
+			:user-info="userInfo"
+			:loading="loading"
+			@close="close"
+			@avatar-change="handleAvatarChange"
+			@name-change="handleNameChange"
+			@submit="userSubmit"
+		/>
 	</view>
 </template>
 
@@ -107,6 +74,9 @@
 	import UserToolsMenu from './components/UserToolsMenu.vue'
 	import UserSettingsPopup from './components/UserSettingsPopup.vue'
 	import UserStatsDisplay from './components/UserStatsDisplay.vue'
+	import UserInfoCard from './components/UserInfoCard.vue'
+	import PageBackground from './components/PageBackground.vue'
+	import LoginPopup from './components/LoginPopup.vue'
 
 	// ==================== 状态管理 ====================
 	
@@ -175,11 +145,11 @@
 		}
 	})
 	
-	// 安全的头像URL - 处理协议转换和默认头像
-	const safeAvatarUrl = computed(() => {
-		if (!userInfo.value?.avatarUrl) return '/static/logo.png'
-		return convertToHttps(userInfo.value.avatarUrl)
-	})
+	// 安全的头像URL - 处理协议转换和默认头像（已移至UserInfoCard组件）
+	// const safeAvatarUrl = computed(() => {
+	// 	if (!userInfo.value?.avatarUrl) return '/static/logo.png'
+	// 	return convertToHttps(userInfo.value.avatarUrl)
+	// })
 
 	// ==================== 生命周期钩子 ====================
 	
@@ -290,10 +260,12 @@
 	 * @param {Object} loginResult - 微信登录结果
 	 */
 	const handleWxLoginResult = (loginResult) => {
-		console.log('微信登录成功:', loginResult)
+		console.log('🎉 微信登录成功:', loginResult)
 		// 保存微信登录的code，然后显示头像昵称设置弹窗
 		uni.setStorageSync('wxLoginCode', loginResult.code)
+		console.log('💾 已保存wxLoginCode')
 		show.value = true
+		console.log('📱 已设置show.value = true，弹窗应该显示')
 	}
 
 	/**
@@ -301,24 +273,32 @@
 	 * 功能：处理用户点击登录按钮的逻辑
 	 */
 	const loginUser = async () => {
+		console.log('🔍 loginUser被调用')
+		console.log('   - loading:', loading.value)
+		console.log('   - isLoggedIn:', userStore.isLoggedIn)
+		console.log('   - show:', show.value)
+		
 		if (loading.value) return // 防止重复点击
 		
 		// 检查是否已登录
 		if (userStore.isLoggedIn) {
 			// 已登录，跳转到个人信息编辑页面
+			console.log('✅ 用户已登录，跳转到个人信息页面')
 			uni.navigateTo({
 				url: '/pages/profile/profile'
 			})
 			return
 		}
 		
+		console.log('🔄 开始微信登录流程')
 		// 未登录时先进行微信登录
 		loading.value = true
 		try {
 			const loginResult = await performWxLogin()
+			console.log('✅ 微信登录成功，准备显示弹窗')
 			handleWxLoginResult(loginResult)
 		} catch (error) {
-			console.error('微信登录失败:', error)
+			console.error('❌ 微信登录失败:', error)
 			uni.showToast({
 				title: error.message || '微信登录失败',
 				icon: 'none'
@@ -333,6 +313,40 @@
 	 */
 	const close = () => {
 		show.value = false
+	}
+	
+	/**
+	 * 处理头像变更事件
+	 * 功能：处理LoginPopup组件传递的头像变更事件
+	 * @param {Object} data - 头像数据对象
+	 */
+	const handleAvatarChange = (data) => {
+		console.log('处理头像变更:', data)
+		
+		// 更新Store中的用户信息
+		const currentUserInfo = userStore.userInfo || {}
+		userStore.setUserInfo({ 
+			...currentUserInfo, 
+			...data
+		})
+		console.log('头像已更新到Store:', userStore.userInfo)
+	}
+	
+	/**
+	 * 处理昵称变更事件
+	 * 功能：处理LoginPopup组件传递的昵称变更事件
+	 * @param {string} nickName - 昵称
+	 */
+	const handleNameChange = (nickName) => {
+		console.log('处理昵称变更:', nickName)
+		
+		// 更新Store中的用户信息
+		const currentUserInfo = userStore.userInfo || {}
+		userStore.setUserInfo({ 
+			...currentUserInfo,
+			nickName: nickName
+		})
+		console.log('昵称已更新到Store:', userStore.userInfo)
 	}
 	
 	// ==================== 弹窗控制函数 ====================
@@ -614,73 +628,7 @@
 
 	// ==================== 头像处理函数 ====================
 	
-	/**
-	 * 选择头像
-	 * 功能：处理用户选择头像的逻辑，区分临时文件和正式URL
-	 * @param {object} e - 事件对象，包含avatarUrl
-	 */
-	const onChooseavatar = async (e) => {
-		try {
-			console.log('用户选择头像:', e.detail.avatarUrl)
-			
-			// 检查是否为微信小程序临时文件
-			if (e.detail.avatarUrl.startsWith('http://tmp/')) {
-				console.log('检测到微信小程序临时文件，保存临时路径，登录后上传')
-				
-				// 对于临时文件，先保存临时路径，登录后再上传
-				const currentUserInfo = userStore.userInfo || {}
-				userStore.setUserInfo({ 
-					...currentUserInfo, 
-					avatarUrl: e.detail.avatarUrl,  // 保存临时路径
-					tempAvatarPath: e.detail.avatarUrl  // 额外保存临时路径标识
-				})
-				console.log('临时头像路径已保存，等待登录后上传')
-				
-				uni.showToast({
-					title: '头像已选择，登录后自动上传',
-					icon: 'success',
-					duration: 2000
-				})
-			} else {
-				// 非临时文件，直接转换协议
-				const safeAvatarUrl = convertToHttps(e.detail.avatarUrl)
-				console.log('转换后的头像URL:', safeAvatarUrl)
-				
-				// 直接更新Store中的用户信息
-				const currentUserInfo = userStore.userInfo || {}
-				userStore.setUserInfo({ 
-					...currentUserInfo, 
-					avatarUrl: safeAvatarUrl 
-				})
-				console.log('头像已更新到Store:', userStore.userInfo)
-			}
-		} catch (error) {
-			console.error('选择头像失败:', error)
-			uni.showToast({
-				title: '选择头像失败',
-				icon: 'none'
-			})
-		}
-	}
-	
-	/**
-	 * 修改昵称
-	 * @param {object} e - 事件对象
-	 */
-	const changeName = (e) => {
-		try {
-			console.log('用户输入昵称:', e.detail.value)
-			// 直接更新Store中的用户信息
-			const currentUserInfo = userStore.userInfo || {}
-			userStore.setUserInfo({ 
-				...currentUserInfo,
-				nickName: e.detail.value
-			})
-			console.log('昵称已更新到Store:', userStore.userInfo)
-		} catch (error) {
-			console.error('修改昵称失败:', error)
-		}
-	}
+	// 头像和昵称处理函数已移至LoginPopup组件
 	
 	/**
 	 * 显示功能开发中提示
@@ -840,91 +788,9 @@
 		overflow: hidden; // 禁止页面滑动
 
 		// background-color: red;
-		.topBox {
-			width: 100%;
-			position: relative;
-			z-index: 1;
-			overflow: hidden;
-			padding: 120rpx 20rpx 40rpx;
-			box-sizing: border-box;
-		}
+		// 背景和用户信息样式已移至PageBackground和UserInfoCard组件
 
-		.topBox::after {
-			content: "";
-			width: 140%;
-			height: 220px;
-			position: absolute;
-			z-index: -1;
-			top: 0;
-			left: -20%;
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			border-radius: 0 0 50% 50%;
-		}
-
-
-		.users {
-			margin-top: 80rpx;
-			padding: 30rpx;
-			box-sizing: border-box;
-			height: 280rpx;
-			background-color: #fff;
-			box-shadow: 1px 10rpx 20rpx #ececec;
-			border-radius: 16rpx;
-
-			.u-top {
-				display: flex;
-				justify-content: flex-start;
-				align-items: center;
-				margin-bottom: 30rpx;
-
-				image {
-					width: 100rpx;
-					height: 100rpx;
-					border-radius: 50%;
-					margin-right: 20rpx;
-				}
-
-				.tit {
-					font-size: 30rpx;
-					font-weight: 700;
-					color: #333;
-				}
-			}
-
-		}
-
-		.popup {
-			padding: 20rpx;
-			border-radius: 20rpx 20rpx 0 0;
-
-			.title {
-				margin-bottom: 20rpx;
-				font-size: 40rpx;
-				text-align: center;
-			}
-
-			.flex {
-				display: flex;
-				justify-content: flex-start;
-				align-items: center;
-				border-bottom: 1px solid #f5f5f5;
-				padding: 24rpx 0;
-			}
-
-			image {
-				width: 70rpx;
-				height: 70rpx;
-			}
-
-			.avatar-warpper {
-				border: none;
-				border-radius: 10rpx;
-				width: 70rpx;
-				height: 70rpx;
-				margin-left: 20rpx;
-				padding: 0;
-			}
-		}
+		// 登录弹窗样式已移至LoginPopup组件
 		
 	}
 </style>
