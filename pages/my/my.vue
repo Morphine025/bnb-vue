@@ -21,63 +21,25 @@
 					</template>
 				</view>
 				<!-- 用户统计数据区域 -->
-				<view class="u-bottom">
-					<view class="u-item" @click="goToFansList">
-						<view class="num">{{ userStats.followers }}</view>
-						<view class="u-tit">粉丝</view>
-					</view>
-					<view class="u-item" @click="goToFollowList">
-						<view class="num">{{ userStats.following }}</view>
-						<view class="u-tit">关注</view>
-					</view>
-					<view class="u-item" @click="goToLikeList">
-						<view class="num">{{ userStats.likes }}</view>
-						<view class="u-tit">喜欢</view>
-					</view>
-					<view class="u-item" @click="goToCollectList">
-						<view class="num">{{ userStats.collections }}</view>
-						<view class="u-tit">收藏</view>
-					</view>
-					<view class="u-item" @click="goToViewHistory">
-						<view class="num">{{ userStats.views }}</view>
-						<view class="u-tit">浏览</view>
-					</view>
-				</view>
+				<UserStatsDisplay 
+					:user-stats="userStats"
+					@item-click="handleStatsItemClick"
+				/>
 			</view>
 		</view>
 		<!-- 功能菜单区域 -->
-		<view class="tools-section">
-			<view class="tools-title">常用工具</view>
-			<view class="tools-card">
-				<uni-list>
-					<!-- 我的发布 -->
-					<uni-list-item :show-extra-icon="true" :extra-icon="extraIcon0" showArrow title="我的发布" clickable @click="goToMyPublish"></uni-list-item>
-					<!-- 我的草稿 -->
-					<uni-list-item :show-extra-icon="true" :extra-icon="extraIconDraft" showArrow title="我的草稿" clickable @click="goToMyDraft"></uni-list-item>
-					<!-- 地址管理（开发中） -->
-					<uni-list-item :show-extra-icon="true" :extra-icon="extraIcon1" showArrow title="地址管理" clickable @click="showDevelopingTip('地址管理')"></uni-list-item>
-					<!-- 设置 -->
-					<uni-list-item :show-extra-icon="true" :extra-icon="extraIcon2" showArrow title="设置" clickable @click="goToSettings"></uni-list-item>
-					<!-- 意见反馈（开发中） -->
-					<uni-list-item :show-extra-icon="true" :extra-icon="extraIcon3" showArrow title="意见反馈" clickable @click="showDevelopingTip('意见反馈')"></uni-list-item>
-					<!-- 关于我的（开发中） -->
-					<uni-list-item :show-extra-icon="true" :extra-icon="extraIcon4" showArrow title="关于我的" clickable @click="showDevelopingTip('关于我的')"></uni-list-item>
-				</uni-list>
-			</view>
-		</view>
+		<UserToolsMenu 
+			:menu-items="menuItems" 
+			@item-click="handleMenuItemClick"
+		/>
 		
-		<!-- 设置弹窗：显示退出登录选项 -->
-		<up-popup :show="showSettings" @close="closeSettings" closeable round="20">
-			<view class="popup">
-				<view class="settings-content">
-					<!-- 退出登录按钮（仅登录用户可见） -->
-					<view class="setting-item" @click="logout" v-if="userInfo.nickName">
-						<view class="setting-icon">🚪</view>
-						<view class="setting-text">退出登录</view>
-					</view>
-				</view>
-			</view>
-		</up-popup>
+		<!-- 设置弹窗组件 -->
+		<UserSettingsPopup 
+			:show="showSettings" 
+			:is-logged-in="!!userInfo.nickName"
+			@close="closeSettings"
+			@logout="logout"
+		/>
 		
 		<!-- 登录弹窗：获取用户头像和昵称 -->
 		<up-popup :show="show" @close="close" closeable round="20">
@@ -121,8 +83,7 @@
 	import {
 		ref,        // 响应式引用
 		reactive,   // 响应式对象
-		computed,   // 计算属性
-		nextTick    // 下一个DOM更新周期
+		computed    // 计算属性
 	} from 'vue'
 	
 	// uni-app 生命周期钩子
@@ -131,8 +92,6 @@
 		onShow      // 页面显示时触发
 	} from '@dcloudio/uni-app'
 	
-	// API接口模块
-	import { API } from '../../api'
 	
 	// Pinia状态管理 - 统一使用userStore管理所有用户数据
 	import { 
@@ -142,7 +101,12 @@
 	// 工具函数
 	import { convertToHttps } from '@/utils/security/urlConverter'  // URL协议转换
 	import { handleAvatarError } from '@/utils/ui/imageErrorHandler'  // 图片错误处理
-	import { handleError, showSuccess, showError } from '@/utils/error/errorHandler'  // 统一错误处理
+	import { handleError, showError } from '@/utils/error/errorHandler'  // 统一错误处理
+	
+	// 组件导入
+	import UserToolsMenu from './components/UserToolsMenu.vue'
+	import UserSettingsPopup from './components/UserSettingsPopup.vue'
+	import UserStatsDisplay from './components/UserStatsDisplay.vue'
 
 	// ==================== 状态管理 ====================
 	
@@ -156,19 +120,59 @@
 	const showSettings = ref(false)   // 控制设置弹窗显示
 	const loading = ref(false)        // 加载状态
 	
+	// 功能菜单配置
+	const menuItems = reactive([
+		{
+			title: '我的发布',
+			icon: { color: '#666666', size: '22', type: 'compose' },
+			action: 'goToMyPublish'
+		},
+		{
+			title: '我的草稿',
+			icon: { color: '#666666', size: '22', type: 'paperplane' },
+			action: 'goToMyDraft'
+		},
+		{
+			title: '设置',
+			icon: { color: '#666666', size: '22', type: 'gear' },
+			action: 'goToSettings'
+		},
+		{
+			title: '地址管理',
+			icon: { color: '#666666', size: '22', type: 'location' },
+			action: 'showDevelopingTip',
+			params: '地址管理'
+		},
+		{
+			title: '意见反馈',
+			icon: { color: '#666666', size: '22', type: 'chatboxes' },
+			action: 'showDevelopingTip',
+			params: '意见反馈'
+		},
+		{
+			title: '关于我的',
+			icon: { color: '#666666', size: '22', type: 'info' },
+			action: 'showDevelopingTip',
+			params: '关于我的'
+		}
+	])
+	
 	// ==================== 计算属性 ====================
 	
 	// 用户信息 - 从userStore获取，提供默认值
 	const userInfo = computed(() => userStore.userInfo || { nickName: '', avatarUrl: '' })
 	
 	// 用户统计数据 - 从userStore获取，提供默认值
-	const userStats = computed(() => userStore.userStats || {
-		followers: 0,     // 粉丝数
-		following: 0,     // 关注数
-		likes: 0,         // 喜欢数
-		collections: 0,   // 收藏数
-		views: 0,         // 浏览数
-		homestays: 0      // 发布数
+	const userStats = computed(() => {
+		console.log('🔍 userStats computed - userStore.userStats:', userStore.userStats)
+		return userStore.userStats || {
+			followers: 0,     // 粉丝数
+			following: 0,     // 关注数
+			likes: 0,         // 喜欢数
+			collections: 0,   // 收藏数
+			views: 0,         // 浏览数
+			homestays: 0      // 发布数
+		}
 	})
 	
 	// 安全的头像URL - 处理协议转换和默认头像
@@ -240,34 +244,7 @@
 		}
 	})
 
-	/**
-	 * 检查登录状态并处理跳转
-	 */
-	const checkLoginStatus = () => {
-		if (userStore.isLoggedIn) {
-			// 已登录，跳转到个人信息编辑页面
-			uni.navigateTo({
-				url: '/pages/profile/profile'
-			})
-			return true
-		}
-		return false
-	}
 
-	/**
-	 * 显示登录提示弹窗
-	 */
-	const showLoginPrompt = (action) => {
-		uni.showModal({
-			title: '提示',
-			content: `请先登录后再${action}`,
-			showCancel: false,
-			confirmText: '去登录',
-			success: () => {
-				show.value = true
-			}
-		})
-	}
 
 	/**
 	 * 通用登录检查和导航函数
@@ -277,7 +254,15 @@
 	 */
 	const checkLoginAndNavigate = (url, action) => {
 		if (!userStore.isLoggedIn) {
-			showLoginPrompt(action)
+			uni.showModal({
+				title: '提示',
+				content: `请先登录后再${action}`,
+				showCancel: false,
+				confirmText: '去登录',
+				success: () => {
+					show.value = true
+				}
+			})
 			return
 		}
 		uni.navigateTo({ url })
@@ -319,7 +304,13 @@
 		if (loading.value) return // 防止重复点击
 		
 		// 检查是否已登录
-		if (checkLoginStatus()) return
+		if (userStore.isLoggedIn) {
+			// 已登录，跳转到个人信息编辑页面
+			uni.navigateTo({
+				url: '/pages/profile/profile'
+			})
+			return
+		}
 		
 		// 未登录时先进行微信登录
 		loading.value = true
@@ -703,6 +694,63 @@
 		})
 	}
 	
+	/**
+	 * 处理菜单项点击事件
+	 * 功能：根据菜单项配置执行相应的操作
+	 * @param {Object} item - 菜单项对象
+	 */
+	const handleMenuItemClick = (item) => {
+		console.log('处理菜单项点击:', item.title, '操作:', item.action)
+		
+		// 根据action执行相应操作
+		switch (item.action) {
+			case 'goToMyPublish':
+				goToMyPublish()
+				break
+			case 'goToMyDraft':
+				goToMyDraft()
+				break
+			case 'goToSettings':
+				goToSettings()
+				break
+			case 'showDevelopingTip':
+				showDevelopingTip(item.params)
+				break
+			default:
+				console.warn('未知的菜单操作:', item.action)
+		}
+	}
+	
+	/**
+	 * 处理统计数据项点击事件
+	 * 功能：根据统计项配置执行相应的操作
+	 * @param {Object} item - 统计项对象
+	 */
+	const handleStatsItemClick = (item) => {
+		console.log('处理统计项点击:', item.label, '操作:', item.action)
+		
+		// 根据action执行相应操作
+		switch (item.action) {
+			case 'goToFansList':
+				goToFansList()
+				break
+			case 'goToFollowList':
+				goToFollowList()
+				break
+			case 'goToLikeList':
+				goToLikeList()
+				break
+			case 'goToCollectList':
+				goToCollectList()
+				break
+			case 'goToViewHistory':
+				goToViewHistory()
+				break
+			default:
+				console.warn('未知的统计项操作:', item.action)
+		}
+	}
+	
 	
 	// ==================== 页面导航函数 ====================
 	
@@ -759,7 +807,15 @@
 	 */
 	const goToMyDraft = () => {
 		if (!userStore.isLoggedIn) {
-			showLoginPrompt('查看我的草稿')
+			uni.showModal({
+				title: '提示',
+				content: '请先登录后再查看我的草稿',
+				showCancel: false,
+				confirmText: '去登录',
+				success: () => {
+					show.value = true
+				}
+			})
 			return
 		}
 		
@@ -776,37 +832,6 @@
 		})
 	}
 	
-	// 功能菜单图标配置
-	const extraIcon0 = reactive({
-		color: '#666666',
-		size: '22',
-		type: 'compose'
-	})
-	const extraIconDraft = reactive({
-		color: '#666666',
-		size: '22',
-		type: 'paperplane'
-	})
-	const extraIcon1 = reactive({
-		color: '#666666',
-		size: '22',
-		type: 'location'
-	})
-	const extraIcon2 = reactive({
-		color: '#666666',
-		size: '22',
-		type: 'gear'
-	})
-	const extraIcon3 = reactive({
-		color: '#666666',
-		size: '22',
-		type: 'chatboxes'
-	})
-	const extraIcon4 = reactive({
-		color: '#666666',
-		size: '22',
-		type: 'info'
-	})
 </script>
 
 <style lang="scss" scoped>
@@ -866,27 +891,6 @@
 				}
 			}
 
-			.u-bottom {
-				display: flex;
-				justify-content: space-around;
-				align-items: center;
-
-				.u-item {
-					text-align: center;
-
-					.u-tit {
-						color: #757575;
-						font-size: 26rpx;
-						margin-top: 10rpx;
-					}
-
-					.num {
-						color: #000;
-						font-size: 33rpx;
-						font-weight: 700;
-					}
-				}
-			}
 		}
 
 		.popup {
@@ -921,61 +925,6 @@
 				padding: 0;
 			}
 		}
-		.tools-section {
-			margin: 0rpx 20rpx 0;
-			
-			.tools-title {
-				font-size: 32rpx;
-				font-weight: 700;
-				color: #333;
-				margin-bottom: 20rpx;
-				padding-left: 10rpx;
-			}
-			
-			.tools-card {
-				padding: 20rpx;
-				box-sizing: border-box;
-				border-radius: 16rpx;
-				background-color: #fff;
-				box-shadow: 1px 10rpx 20rpx #ececec;
-			}
-		}
 		
-		.settings-content {
-			padding: 20rpx 0;
-			
-			.setting-item {
-				display: flex;
-				align-items: center;
-				padding: 30rpx 40rpx;
-				border-bottom: 1px solid #f5f5f5;
-				cursor: pointer;
-				transition: background-color 0.3s;
-				
-				&:last-child {
-					border-bottom: none;
-				}
-				
-				&:active {
-					background-color: #f5f5f5;
-				}
-				
-				.setting-icon {
-					font-size: 40rpx;
-					margin-right: 20rpx;
-				}
-				
-				.setting-text {
-					flex: 1;
-					font-size: 30rpx;
-					color: #333;
-				}
-				
-				.setting-arrow {
-					font-size: 28rpx;
-					color: #999;
-				}
-			}
-		}
 	}
 </style>

@@ -44,7 +44,6 @@ const goToSearch = () => {
 /* 头部搜索区域 */
 .header-section {
     background: transparent;
-    padding: 20rpx 30rpx;
     box-shadow: none;
 }
 
