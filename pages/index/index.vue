@@ -1,4 +1,5 @@
 <template>
+	<!-- 首页主容器 -->
 	<view class="social-forum">
 		<!-- 顶部搜索区域 -->
 		<view class="header-section">
@@ -9,6 +10,7 @@
 						<image src="/static/unnamed.jpg" mode="aspectFill" class="icon-image"></image>
 					</view>
 					
+					<!-- 搜索输入框 -->
 					<view class="search-input" @click="goToSearch">
 						<up-icon name="search" size="18" color="#999"></up-icon>
 						<input 
@@ -20,6 +22,7 @@
 							@input="handleSearchInput"
 							:disabled="true"
 						/>
+						<!-- 清除搜索按钮 -->
 						<view class="search-clear" v-if="keyword" @click.stop="clearSearch">
 							<up-icon name="close-circle-fill" size="16" color="#ccc"></up-icon>
 						</view>
@@ -28,7 +31,7 @@
 			</view>
 		</view>
 
-		<!-- 内容区域 -->
+		<!-- 内容区域 - 支持下拉刷新 -->
 		<scroll-view 
 			class="content-area" 
 			scroll-y="true"
@@ -36,8 +39,9 @@
 			:refresher-triggered="isRefreshing"
 			@refresherrefresh="onRefresherRefresh"
 		>
-			<!-- 轮播图 -->
+			<!-- 轮播图区域 -->
 			<view class="banner-container" v-if="bannerList.length > 0">
+				<!-- 轮播图组件 - 支持自动播放和指示器 -->
 				<swiper 
 					class="banner-swiper" 
 					:indicator-dots="bannerList.length > 1" 
@@ -48,14 +52,17 @@
 					indicator-active-color="#667eea"
 					:circular="bannerList.length > 1"
 				>
+					<!-- 轮播图项目 -->
 					<swiper-item v-for="(banner, index) in bannerList" :key="banner.bannerId || banner.banner_id || banner.id || `banner_${index}`">
 						<view class="banner-item" @click="handleBannerClick(banner)">
+							<!-- 轮播图图片 -->
 							<image 
 								:src="getImageUrl(banner.imageUrl || banner.image_url || banner.image || banner.img)" 
 								mode="aspectFill" 
 								class="banner-image"
 								@error="handleBannerImageError"
 							></image>
+							<!-- 轮播图文字覆盖层 -->
 							<view class="banner-overlay">
 								<view class="banner-title">{{ banner.title || '暂无标题' }}</view>
 								<view class="banner-subtitle" v-if="banner.subtitle">{{ banner.subtitle }}</view>
@@ -73,12 +80,14 @@
 				</view>
 			</view>
 			
-			<!-- 筛选栏 -->
+			<!-- 筛选栏 - 地址选择和布局切换 -->
 			<view class="filter-bar">
+				<!-- 地址选择器 -->
 				<view class="filter-item address-filter" @click="showAddressPicker">
 					<up-icon name="arrow-down" size="12" color="#999"></up-icon>
 					<text class="filter-text">{{ selectedAddress || '选择地址' }}</text>
 				</view>
+				<!-- 布局切换按钮 -->
 				<view class="filter-item layout-toggle" @click="toggleLayout">
 					<up-icon :name="isSingleColumn ? 'grid' : 'list'" size="24" color="#999"></up-icon>
 				</view>
@@ -258,10 +267,6 @@
 			</view>
 		</scroll-view>
 		
-		<!-- 回到顶部按钮 -->
-		<view v-if="showTopBtn" @click="toTop" class="back-to-top">
-			<up-icon name="arrow-upward" color="#fff" size="28"></up-icon>
-		</view>
 
 		<!-- 双列选择器 -->
 		<view v-if="showAddressPickerPopup" class="region-picker-overlay" @click="closeAddressPicker">
@@ -306,85 +311,97 @@
 
 <script setup>
 /**
- * 首页组件 - 原始未拆分版本
- * 所有功能都集中在一个文件中
+ * 首页组件 - 民宿展示首页
+ * 
+ * 主要功能：
+ * 1. 轮播图展示
+ * 2. 民宿列表展示（支持瀑布流和单列布局）
+ * 3. 地址筛选
+ * 4. 搜索功能
+ * 5. 下拉刷新和上拉加载
+ * 6. 缓存管理
  */
+
+// ==================== 导入模块 ====================
 
 // 导入API接口
 import { API } from '../../api'
-import { showLoading, hideLoading } from '@/utils'
 
 // 导入uni-app生命周期钩子
 import {
-	onLoad,
-	onShow,
-	onReachBottom,
-	onPageScroll,
-	onPullDownRefresh
+	onLoad,      // 页面加载
+	onShow,       // 页面显示
+	onReachBottom, // 触底加载
+	onPageScroll,  // 页面滚动
 } from '@dcloudio/uni-app'
 
 // 导入Vue响应式API
 import {
-	ref,
-	reactive,
-	computed,
-	nextTick
+	ref,        // 响应式引用
+	computed    // 计算属性
 } from 'vue'
 
-// 导入Pinia stores
+// 导入Pinia状态管理
 import { 
-	useHomestayStore,
-	useHomestayFilterStore,
-	useUserProfileStore,
-	useCacheStore
+	useHomestayStore,  // 民宿数据管理
+	useCacheStore      // 缓存管理
 } from '../../stores'
 
-// 导入价格格式化工具
-import { formatPrice } from '@/utils'
+// 导入工具函数
+import { formatPrice } from '@/utils'  // 价格格式化
+import { convertToHttps } from '@/utils/security/urlConverter'  // URL安全转换
 
-// 导入URL转换工具
-import { convertToHttps, createImageErrorHandler } from '@/utils/security/urlConverter'
+
+// ==================== 状态管理 ====================
 
 // 使用模块化Store
-const homestayListStore = useHomestayStore()
-const homestayFilterStore = useHomestayFilterStore()
-const userProfileStore = useUserProfileStore()
-const cacheStore = useCacheStore()
+const homestayListStore = useHomestayStore()  // 民宿数据管理
+const cacheStore = useCacheStore()            // 缓存管理
 
-// 响应式数据定义
-const keyword = ref('')
-const bannerList = ref([])
-const showTopBtn = ref(0)
-const selectedAddress = ref('')
-const showAddressPickerPopup = ref(false)
-const currentUserId = ref(null)
-const isSingleColumn = ref(false)
-const isPageLoaded = ref(false)
-const isRefreshing = ref(false)
 
-// 省市数据
-const provinceList = ref([])
-const cityList = ref([])
-const selectedProvince = ref(null)
-const selectedCity = ref(null)
-const loadingProvinces = ref(false)
+// ==================== 响应式数据定义 ====================
 
-// 从Store获取数据
+// 搜索相关
+const keyword = ref('')                       // 搜索关键词
+
+// 轮播图相关
+const bannerList = ref([])                    // 轮播图数据
+
+// UI状态
+const isSingleColumn = ref(false)            // 是否为单列布局
+const isPageLoaded = ref(false)              // 页面是否已加载
+const isRefreshing = ref(false)              // 是否正在刷新
+
+// 地址选择相关
+const selectedAddress = ref('')               // 选中的地址
+const showAddressPickerPopup = ref(false)    // 是否显示地址选择器
+const provinceList = ref([])                 // 省份列表
+const cityList = ref([])                     // 城市列表
+const selectedProvince = ref(null)           // 选中的省份
+const selectedCity = ref(null)               // 选中的城市
+const loadingProvinces = ref(false)          // 是否正在加载省份数据
+
+// ==================== 计算属性 ====================
+
+// 从Store获取民宿数据
 const fallList = computed(() => {
 	const data = homestayListStore.processedHomestayList || []
 	console.log('🔄 首页 fallList computed 计算，数据长度:', data.length)
 	return data
 })
-const isLoading = computed(() => homestayListStore.isLoading)
-const hasMore = computed(() => homestayListStore.hasMore)
-const currentPage = computed(() => homestayListStore.currentPage)
 
-// 安全的轮播图列表
-const safeBannerList = computed(() => {
-	return bannerList.value || []
-})
+// 加载状态
+const isLoading = computed(() => homestayListStore.isLoading)    // 是否正在加载
+const hasMore = computed(() => homestayListStore.hasMore)        // 是否还有更多数据
+const currentPage = computed(() => homestayListStore.currentPage) // 当前页码
 
-// 从本地存储读取布局偏好
+
+// ==================== 布局管理 ====================
+
+/**
+ * 从本地存储读取布局偏好
+ * 用户可以选择单列或双列瀑布流布局
+ */
 const loadLayoutPreference = () => {
 	try {
 		const saved = uni.getStorageSync('layout_preference')
@@ -396,7 +413,10 @@ const loadLayoutPreference = () => {
 	}
 }
 
-// 保存布局偏好到本地存储
+/**
+ * 保存布局偏好到本地存储
+ * 记住用户的选择，下次打开时恢复
+ */
 const saveLayoutPreference = () => {
 	try {
 		uni.setStorageSync('layout_preference', isSingleColumn.value)
@@ -405,57 +425,100 @@ const saveLayoutPreference = () => {
 	}
 }
 
-// 切换布局
+/**
+ * 切换布局模式
+ * 在单列列表和双列瀑布流之间切换
+ */
 const toggleLayout = () => {
 	isSingleColumn.value = !isSingleColumn.value
 	saveLayoutPreference()
 }
 
-// 搜索相关方法
+// ==================== 搜索功能 ====================
+
+/**
+ * 跳转到搜索页面
+ * 点击搜索框时触发
+ */
 const goToSearch = () => {
 	uni.navigateTo({
 		url: '/pages/search/search'
 	})
 }
 
+/**
+ * 处理搜索确认
+ * @param {string} searchKeyword - 搜索关键词
+ */
 const handleSearch = (searchKeyword) => {
 	console.log('搜索关键词:', searchKeyword)
 	// 实现搜索逻辑
 }
 
+/**
+ * 处理搜索输入
+ * @param {Object} e - 输入事件对象
+ */
 const handleSearchInput = (e) => {
 	keyword.value = e.detail.value
 }
 
+/**
+ * 清除搜索内容
+ */
 const clearSearch = () => {
 	keyword.value = ''
 }
 
-// 轮播图相关方法
+// ==================== 轮播图功能 ====================
+
+/**
+ * 处理轮播图点击事件
+ * @param {Object} banner - 轮播图数据对象
+ */
 const handleBannerClick = (banner) => {
 	console.log('点击轮播图:', banner)
 	// 实现轮播图点击逻辑
 }
 
+/**
+ * 处理轮播图图片加载失败
+ */
 const handleBannerImageError = () => {
 	console.log('轮播图加载失败')
 }
 
-// 地址选择相关方法
+// ==================== 地址选择功能 ====================
+
+/**
+ * 显示地址选择器
+ * 打开省市区选择弹窗
+ */
 const showAddressPicker = () => {
 	showAddressPickerPopup.value = true
 	loadProvinces()
 }
 
+/**
+ * 关闭地址选择器
+ */
 const closeAddressPicker = () => {
 	showAddressPickerPopup.value = false
 }
 
+/**
+ * 选择省份
+ * @param {Object} province - 省份对象
+ */
 const selectProvince = (province) => {
     selectedProvince.value = province
     loadCities(province.code)
 }
 
+/**
+ * 选择城市
+ * @param {Object} city - 城市对象
+ */
 const selectCity = (city) => {
 	selectedCity.value = city
 	selectedAddress.value = `${selectedProvince.value.name} ${city.name}`
@@ -463,7 +526,12 @@ const selectCity = (city) => {
 	loadHomestayList()
 }
 
-// 加载省份数据
+// ==================== 数据加载功能 ====================
+
+/**
+ * 加载省份数据
+ * 从API获取省份列表，避免重复加载
+ */
 const loadProvinces = async () => {
 	if (loadingProvinces.value || provinceList.value.length > 0) return
 	
@@ -480,7 +548,10 @@ const loadProvinces = async () => {
 	}
 }
 
-// 加载城市数据
+/**
+ * 加载城市数据
+ * @param {string} provinceCode - 省份代码
+ */
 const loadCities = async (provinceCode) => {
 	try {
 		const response = await API.region.getCitiesByProvince(provinceCode)
@@ -492,7 +563,10 @@ const loadCities = async (provinceCode) => {
 	}
 }
 
-// 加载民宿列表
+/**
+ * 加载民宿列表
+ * 从Store加载民宿数据
+ */
 const loadHomestayList = async () => {
 	try {
 		await homestayListStore.loadMoreHomestays()
@@ -501,7 +575,10 @@ const loadHomestayList = async () => {
 	}
 }
 
-// 加载更多数据
+/**
+ * 加载更多数据
+ * 触底加载更多民宿数据
+ */
 const loadMore = async () => {
 	if (isLoading.value || !hasMore.value) return
 	
@@ -512,13 +589,24 @@ const loadMore = async () => {
 	}
 }
 
-// 智能图片URL处理
+// ==================== 图片处理功能 ====================
+
+/**
+ * 智能图片URL处理
+ * 将HTTP转换为HTTPS，处理默认图片
+ * @param {string} url - 原始图片URL
+ * @returns {string} 处理后的安全URL
+ */
 const getImageUrl = (url) => {
 	if (!url) return '/static/logo.png'
 	return convertToHttps(url)
 }
 
-// 图片错误处理
+/**
+ * 图片加载错误处理
+ * 智能降级处理，支持HTTP/HTTPS协议切换
+ * @param {Object} errorData - 错误数据对象
+ */
 const handleImageError = (errorData) => {
 	console.log('图片加载失败:', errorData)
 	
@@ -542,38 +630,27 @@ const handleImageError = (errorData) => {
 	}
 }
 
-// 跳转到详情页
+// ==================== 页面导航功能 ====================
+
+/**
+ * 跳转到民宿详情页
+ * @param {Object} item - 民宿数据对象
+ */
 const goDetail = (item) => {
 	uni.navigateTo({
 		url: `/pages/detail/detail?id=${item.id}`
 	})
 }
 
-// 回到顶部
-const toTop = () => {
-	uni.pageScrollTo({
-		scrollTop: 0,
-		duration: 300
-	})
-}
 
-// 页面滚动处理
-const onPageScrollHandler = (e) => {
-	showTopBtn.value = e.scrollTop > 500
-}
+// ==================== 滚动和刷新功能 ====================
 
-// 下拉刷新
-const onPullDownRefreshHandler = async () => {
-	try {
-		await homestayListStore.refreshHomestayList()
-		uni.stopPullDownRefresh()
-	} catch (error) {
-		console.error('下拉刷新失败:', error)
-		uni.stopPullDownRefresh()
-	}
-}
 
-// scroll-view 下拉刷新
+
+/**
+ * scroll-view 下拉刷新处理
+ * 清除缓存并重新加载数据
+ */
 const onRefresherRefresh = async () => {
     if (isRefreshing.value) return
     isRefreshing.value = true
@@ -601,7 +678,13 @@ const onRefresherRefresh = async () => {
     }
 }
 
-// 生命周期钩子
+// ==================== 生命周期钩子 ====================
+
+/**
+ * 页面加载时触发
+ * 初始化页面数据，处理缓存逻辑
+ * @param {Object} options - 页面参数
+ */
 onLoad(async (options) => {
 	console.log('首页加载，参数:', options)
 	loadLayoutPreference()
@@ -635,6 +718,10 @@ onLoad(async (options) => {
 	}
 })
 
+/**
+ * 页面显示时触发
+ * 启动数据同步检查，确保数据最新
+ */
 onShow(() => {
 	console.log('首页显示')
 	
@@ -646,32 +733,42 @@ onShow(() => {
 	}
 })
 
+/**
+ * 触底加载更多
+ * 当用户滚动到底部时自动加载更多数据
+ */
 onReachBottom(() => {
 	console.log('触底加载更多')
 	loadMore()
 })
 
-onPageScroll(onPageScrollHandler)
 
-onPullDownRefresh(onPullDownRefreshHandler)
 </script>
 
 <style scoped>
+/* ==================== 主容器样式 ==================== */
+
+/* 首页主容器 */
 .social-forum {
 	background: #f8f9fa;
 	min-height: 100vh;
 }
 
-/* 头部搜索区域样式 */
+/* ==================== 头部搜索区域样式 ==================== */
+
+/* 头部搜索区域 */
 .header-section {
     background: transparent;
+    padding: 20rpx 30rpx;
     box-shadow: none;
 }
 
+/* 搜索容器 */
 .search-container {
 	width: 100%;
 }
 
+/* 搜索包装器 */
 .search-wrapper {
     display: flex;
     align-items: center;
@@ -680,6 +777,7 @@ onPullDownRefresh(onPullDownRefreshHandler)
     padding: 20rpx 30rpx;
 }
 
+/* 项目图标 */
 .project-icon {
 	width: 60rpx;
 	height: 60rpx;
@@ -692,6 +790,7 @@ onPullDownRefresh(onPullDownRefreshHandler)
 	border-radius: 50%;
 }
 
+/* 搜索输入框 */
 .search-input {
 	flex: 1;
 	display: flex;
@@ -702,6 +801,7 @@ onPullDownRefresh(onPullDownRefreshHandler)
 	position: relative;
 }
 
+/* 搜索输入字段 */
 .search-field {
 	flex: 1;
 	font-size: 28rpx;
@@ -709,6 +809,7 @@ onPullDownRefresh(onPullDownRefreshHandler)
 	margin-left: 15rpx;
 }
 
+/* 清除搜索按钮 */
 .search-clear {
 	position: absolute;
 	right: 15rpx;
@@ -716,7 +817,9 @@ onPullDownRefresh(onPullDownRefreshHandler)
 	transform: translateY(-50%);
 }
 
-/* 轮播图样式 */
+/* ==================== 轮播图样式 ==================== */
+
+/* 轮播图容器 */
 .banner-container {
     width: 100%;
     height: 320rpx;
@@ -1159,21 +1262,6 @@ onPullDownRefresh(onPullDownRefreshHandler)
 	margin-top: 20rpx;
 }
 
-/* 回到顶部按钮 */
-.back-to-top {
-	position: fixed;
-	bottom: 100rpx;
-	right: 30rpx;
-	width: 80rpx;
-	height: 80rpx;
-	background: #667eea;
-	border-radius: 50%;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	box-shadow: 0 4rpx 20rpx rgba(102, 126, 234, 0.3);
-	z-index: 100;
-}
 
 /* 地址选择器样式 */
 .region-picker-overlay {
