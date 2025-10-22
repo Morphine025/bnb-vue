@@ -335,7 +335,8 @@ import {
 import { 
 	useHomestayStore,
 	useHomestayFilterStore,
-	useUserProfileStore
+	useUserProfileStore,
+	useCacheStore
 } from '../../stores'
 
 // 导入价格格式化工具
@@ -348,6 +349,7 @@ import { convertToHttps, createImageErrorHandler } from '@/utils/security/urlCon
 const homestayListStore = useHomestayStore()
 const homestayFilterStore = useHomestayFilterStore()
 const userProfileStore = useUserProfileStore()
+const cacheStore = useCacheStore()
 
 // 响应式数据定义
 const keyword = ref('')
@@ -575,8 +577,23 @@ const onPullDownRefreshHandler = async () => {
 const onRefresherRefresh = async () => {
     if (isRefreshing.value) return
     isRefreshing.value = true
+    
     try {
+        // 强制清除所有相关缓存
+        console.log('🔄 下拉刷新，清除缓存')
+        cacheStore.clearCacheByDataType('homestay-list')
+        cacheStore.clearCacheByDataType('banner')
+        
+        // 刷新数据
         await homestayListStore.refreshHomestayList()
+        
+        // 重新加载轮播图
+        const bannerResponse = await API.homestay.getBanner()
+        if (bannerResponse && bannerResponse.data) {
+            bannerList.value = bannerResponse.data
+        }
+        
+        console.log('✅ 下拉刷新完成')
     } catch (e) {
         console.error('refresher 刷新失败:', e)
     } finally {
@@ -589,6 +606,10 @@ onLoad(async (options) => {
 	console.log('首页加载，参数:', options)
 	loadLayoutPreference()
 	
+	// 检查是否需要强制刷新
+	const forceRefresh = options.forceRefresh === 'true'
+	const cacheAge = cacheStore.getCacheAge('homestay-list-1-{}')
+	
 	try {
 		// 加载轮播图
 		const bannerResponse = await API.homestay.getBanner()
@@ -596,8 +617,18 @@ onLoad(async (options) => {
 			bannerList.value = bannerResponse.data
 		}
 		
-		// 加载民宿列表
-		await loadHomestayList()
+		// 根据缓存年龄和强制刷新参数决定是否使用缓存
+		if (forceRefresh || !cacheAge || cacheAge > 2 * 60 * 1000) {
+			// 强制刷新或缓存过期，清除缓存
+			console.log('🔄 强制刷新或缓存过期，清除缓存')
+			await homestayListStore.clearCache()
+			await loadHomestayList()
+		} else {
+			// 使用缓存
+			console.log('✅ 使用缓存数据，缓存年龄:', Math.round(cacheAge / 1000), '秒')
+			await loadHomestayList()
+		}
+		
 		isPageLoaded.value = true
 	} catch (error) {
 		console.error('首页初始化失败:', error)
@@ -606,6 +637,13 @@ onLoad(async (options) => {
 
 onShow(() => {
 	console.log('首页显示')
+	
+	// 启动数据同步检查
+	try {
+		cacheStore.startDataSyncCheck()
+	} catch (error) {
+		console.error('启动数据同步检查失败:', error)
+	}
 })
 
 onReachBottom(() => {
@@ -627,7 +665,6 @@ onPullDownRefresh(onPullDownRefreshHandler)
 /* 头部搜索区域样式 */
 .header-section {
     background: transparent;
-    padding: 20rpx 30rpx;
     box-shadow: none;
 }
 

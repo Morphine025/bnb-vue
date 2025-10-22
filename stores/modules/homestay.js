@@ -259,6 +259,17 @@ export const useHomestayStore = defineStore('homestay', () => {
     hasMore.value = true
   }
 
+  // 新增：清除缓存方法
+  const clearCache = async () => {
+    try {
+      // 清除民宿列表相关缓存
+      cacheStore.clearCacheByDataType('homestay-list')
+      console.log('🧹 已清除民宿列表缓存')
+    } catch (error) {
+      console.error('清除缓存失败:', error)
+    }
+  }
+
   const loadMoreHomestays = async () => {
     console.log('🚀 loadMoreHomestays 被调用')
     console.log('   - isLoading:', loadingStore.isLoading('homestay-list'))
@@ -285,19 +296,25 @@ export const useHomestayStore = defineStore('homestay', () => {
       const pageToLoad = homestayList.value.length === 0 ? 1 : currentPage.value + 1
       console.log('📡 准备请求第', pageToLoad, '页数据')
       
-      // 检查缓存
+      // 检查缓存 - 使用新的缓存策略
       const cacheKey = `homestay-list-${pageToLoad}-${JSON.stringify(filterConditions.value)}`
-      const cachedData = cacheStore.getCache(cacheKey, { dataType: 'homestay-list' })
-      if (cachedData) {
-        console.log('✅ 使用缓存的民宿列表数据')
-        // 直接使用缓存数据，不需要API响应格式验证
-        const newList = cachedData.list || []
-        if (newList.length > 0) {
-          appendHomestayList(newList)
-          setCurrentPage(pageToLoad)
-          setHasMore(cachedData.hasMore || false)
+      
+      // 检查缓存是否需要刷新
+      if (!cacheStore.shouldRefreshCache(cacheKey, 'realtime')) {
+        const cachedData = cacheStore.getCache(cacheKey, { dataType: 'realtime' })
+        if (cachedData) {
+          console.log('✅ 使用缓存的民宿列表数据，缓存年龄:', Math.round(cacheStore.getCacheAge(cacheKey) / 1000), '秒')
+          // 直接使用缓存数据，不需要API响应格式验证
+          const newList = cachedData.list || []
+          if (newList.length > 0) {
+            appendHomestayList(newList)
+            setCurrentPage(pageToLoad)
+            setHasMore(cachedData.hasMore || false)
+          }
+          return
         }
-        return
+      } else {
+        console.log('🔄 缓存已过期，需要重新获取数据')
       }
       
       // 验证搜索参数
@@ -349,14 +366,15 @@ export const useHomestayStore = defineStore('homestay', () => {
             setCurrentPage(pageToLoad)
           }
           
-          // 缓存数据
+          // 缓存数据 - 使用新的实时数据类型
           const cacheData = {
             list: uniqueNewList,
             hasMore: newList.length === pageSize.value,
             page: pageToLoad,
-            filterConditions: filterConditions.value
+            filterConditions: filterConditions.value,
+            timestamp: Date.now()
           }
-          cacheStore.setCache(cacheKey, cacheData, { dataType: 'homestay-list' })
+          cacheStore.setCache(cacheKey, cacheData, { dataType: 'realtime' })
         }
         
         setHasMore(newList.length === pageSize.value)
@@ -644,6 +662,7 @@ export const useHomestayStore = defineStore('homestay', () => {
     toggleFavorite,
     isFavorite,
     clearHomestayList,
+    clearCache,
     loadMoreHomestays,
     refreshHomestayList,
     

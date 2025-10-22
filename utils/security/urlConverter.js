@@ -7,6 +7,39 @@
 // 导入环境检测工具
 import { isLocalDevelopment, getRecommendedProtocol, getDevelopmentSuggestions } from './environmentDetector'
 
+// 防重复警告的标记
+let hasWarnedLocalDevServer = false
+let hasWarnedTempFile = false
+
+// 日志管理工具
+const logManager = {
+  // 记录已警告的类型
+  warnedTypes: new Set(),
+  
+  // 智能警告输出
+  smartWarn(type, messages) {
+    if (!this.warnedTypes.has(type)) {
+      messages.forEach(msg => console.warn(msg))
+      this.warnedTypes.add(type)
+    }
+  },
+  
+  // 智能日志输出
+  smartLog(type, message) {
+    if (!this.warnedTypes.has(type)) {
+      console.log(message)
+      this.warnedTypes.add(type)
+    }
+  },
+  
+  // 重置警告状态（用于测试）
+  reset() {
+    this.warnedTypes.clear()
+    hasWarnedLocalDevServer = false
+    hasWarnedTempFile = false
+  }
+}
+
 /**
  * 将HTTP URL转换为HTTPS（智能处理微信小程序环境）
  * @param {string} url - 原始URL
@@ -32,9 +65,12 @@ export const convertToHttps = (url) => {
   
   // 特殊处理微信小程序临时文件
   if (isWechatMiniProgram && url.startsWith('http://tmp/')) {
-    console.warn('⚠️ 检测到微信小程序临时文件路径:', url)
-    console.warn('💡 临时文件需要先上传到服务器才能正常显示')
-    console.warn('💡 建议：使用头像上传功能将临时文件上传到服务器')
+    // 使用智能警告输出
+    logManager.smartWarn('tempFile', [
+      '⚠️ 检测到微信小程序临时文件路径',
+      '💡 临时文件需要先上传到服务器才能正常显示',
+      '💡 建议：使用头像上传功能将临时文件上传到服务器'
+    ])
     
     // 对于临时文件，返回默认头像
     return '/static/logo.png'
@@ -50,32 +86,34 @@ export const convertToHttps = (url) => {
     
     if (isLocalDevServer) {
       // 微信小程序环境：对本地开发服务器使用特殊处理
-      console.warn('⚠️ 微信小程序环境检测到本地HTTP服务器')
-      console.warn('💡 建议：使用内网穿透工具（如ngrok）将本地服务暴露为HTTPS')
-      console.warn('💡 或者：在微信开发者工具中关闭"不校验合法域名"选项')
-      console.warn('💡 当前保持HTTP协议，但可能显示协议警告')
+      // 使用智能警告输出
+      logManager.smartWarn('localDevServer', [
+        '⚠️ 微信小程序环境检测到本地HTTP服务器',
+        '💡 建议：使用内网穿透工具（如ngrok）将本地服务暴露为HTTPS',
+        '💡 或者：在微信开发者工具中关闭"不校验合法域名"选项',
+        '💡 当前保持HTTP协议，但可能显示协议警告'
+      ])
       
       // 对于本地开发服务器，保持HTTP协议但添加错误处理
-      console.log('🔧 微信小程序环境保持HTTP协议用于本地开发:', url)
       return url
     } else {
       // 非本地服务器，转换为HTTPS
       const httpsUrl = url.replace('http://', 'https://')
-      console.log('🔒 微信小程序环境转换为HTTPS协议:', httpsUrl)
+      logManager.smartLog('httpsConversion', '🔒 微信小程序环境转换为HTTPS协议')
       return httpsUrl
     }
   }
   
   // 如果推荐使用HTTP，保持HTTP协议（仅限非微信小程序环境）
   if (recommendedProtocol === 'http' && !isWechatMiniProgram) {
-    console.log('🔧 本地开发环境保持HTTP协议:', url)
+    logManager.smartLog('localHttp', '🔧 本地开发环境保持HTTP协议')
     return url
   }
   
   // 如果是HTTP，转换为HTTPS（仅在生产环境或非本地服务器）
   if (url.startsWith('http://')) {
     const httpsUrl = url.replace('http://', 'https://')
-    console.log('🔒 转换为HTTPS协议:', httpsUrl)
+    logManager.smartLog('httpToHttps', '🔒 转换为HTTPS协议')
     return httpsUrl
   }
   
@@ -274,4 +312,7 @@ export const createSmartImageUrl = (url, onError) => {
     }
   }
 }
+
+// 导出日志管理工具，用于调试和测试
+export { logManager }
 

@@ -14,28 +14,41 @@ export const useCacheStore = defineStore('cache', () => {
   const cacheTimestamps = ref(new Map())
   const cacheSizes = ref(new Map())
   
-  // 优化后的缓存配置
+  // 优化后的缓存配置 - 针对民宿平台优化
   const cacheConfig = ref({
-    // 短期缓存配置
+    // 实时数据缓存 - 民宿列表等频繁变化的数据
+    realtime: {
+      maxSize: 5 * 1024 * 1024, // 5MB
+      maxAge: 2 * 60 * 1000, // 2分钟 - 大幅缩短缓存时间
+      priority: 'high',
+      enableRefresh: true // 支持强制刷新
+    },
+    // 短期缓存配置 - 用户信息等半实时数据
     shortTerm: {
       maxSize: 10 * 1024 * 1024, // 10MB
-      maxAge: 5 * 60 * 1000, // 5分钟
+      maxAge: 10 * 60 * 1000, // 10分钟
       priority: 'high'
     },
-    // 中期缓存配置
+    // 中期缓存配置 - 地区信息等相对稳定的数据
     mediumTerm: {
-      maxSize: 50 * 1024 * 1024, // 50MB
-      maxAge: 60 * 60 * 1000, // 1小时
+      maxSize: 20 * 1024 * 1024, // 20MB
+      maxAge: 30 * 60 * 1000, // 30分钟
       priority: 'medium'
     },
-    // 长期缓存配置
+    // 长期缓存配置 - 静态配置等很少变化的数据
     longTerm: {
-      maxSize: 100 * 1024 * 1024, // 100MB
+      maxSize: 50 * 1024 * 1024, // 50MB
       maxAge: 24 * 60 * 60 * 1000, // 24小时
       priority: 'low'
     },
     enableOffline: true,
-    enableCompression: true
+    enableCompression: true,
+    // 新增：数据同步配置
+    syncConfig: {
+      checkInterval: 2 * 60 * 1000, // 2分钟检查一次数据更新
+      forceRefreshThreshold: 5 * 60 * 1000, // 5分钟强制刷新阈值
+      enableWebSocket: false // 暂时关闭WebSocket，后续可扩展
+    }
   })
 
   // 离线数据
@@ -50,6 +63,14 @@ export const useCacheStore = defineStore('cache', () => {
     lastSyncTime: null,
     syncErrors: [],
     pendingCount: 0
+  })
+
+  // 新增：数据同步检查状态
+  const dataSyncStatus = ref({
+    lastCheckTime: null,
+    hasNewData: false,
+    pendingUpdates: [],
+    syncInterval: null
   })
 
   // 计算属性
@@ -81,6 +102,21 @@ export const useCacheStore = defineStore('cache', () => {
   const pendingSyncCount = computed(() => 
     offlineQueue.value.length
   )
+
+  // 新增：缓存年龄计算
+  const getCacheAge = (key) => {
+    const timestamp = cacheTimestamps.value.get(key)
+    return timestamp ? Date.now() - timestamp : null
+  }
+
+  // 新增：检查缓存是否需要刷新
+  const shouldRefreshCache = (key, dataType = 'default') => {
+    const age = getCacheAge(key)
+    if (!age) return true
+    
+    const config = cacheConfig.value[dataType] || cacheConfig.value.mediumTerm
+    return age > config.maxAge
+  }
 
   // ==================== Actions ====================
   
@@ -302,6 +338,43 @@ export const useCacheStore = defineStore('cache', () => {
     saveOfflineQueueToStorage()
   }
 
+  // 新增：智能缓存失效方法
+  const clearCacheByCondition = (condition) => {
+    const cacheKeys = Array.from(cacheData.value.keys())
+    let clearedCount = 0
+    
+    cacheKeys.forEach(key => {
+      if (condition(key)) {
+        removeCache(key)
+        clearedCount++
+      }
+    })
+    
+    console.log(`🧹 智能缓存清理完成，清理了 ${clearedCount} 个缓存项`)
+    return clearedCount
+  }
+
+  // 新增：根据数据类型清除缓存
+  const clearCacheByDataType = (dataType) => {
+    return clearCacheByCondition(key => key.includes(dataType))
+  }
+
+  // 新增：根据时间条件清除过期缓存
+  const clearExpiredCache = () => {
+    return clearCacheByCondition(key => {
+      const age = getCacheAge(key)
+      return age && age > cacheConfig.value.mediumTerm.maxAge
+    })
+  }
+
+  // 新增：强制清除所有缓存
+  const clearAllCache = () => {
+    cacheData.value.clear()
+    cacheTimestamps.value.clear()
+    cacheSizes.value.clear()
+    console.log('🧹 已清除所有缓存')
+  }
+
   const setIsOffline = (offline) => {
     isOffline.value = offline
   }
@@ -357,6 +430,63 @@ export const useCacheStore = defineStore('cache', () => {
     } catch (error) {
       endSync(false, error)
     }
+  }
+
+  // 新增：数据同步检查机制
+  const startDataSyncCheck = () => {
+    if (dataSyncStatus.value.syncInterval) {
+      clearInterval(dataSyncStatus.value.syncInterval)
+    }
+    
+    dataSyncStatus.value.syncInterval = setInterval(async () => {
+      await checkForDataUpdates()
+    }, cacheConfig.value.syncConfig.checkInterval)
+    
+    console.log('🔄 数据同步检查已启动，检查间隔:', cacheConfig.value.syncConfig.checkInterval / 1000, '秒')
+  }
+
+  const stopDataSyncCheck = () => {
+    if (dataSyncStatus.value.syncInterval) {
+      clearInterval(dataSyncStatus.value.syncInterval)
+      dataSyncStatus.value.syncInterval = null
+      console.log('⏹️ 数据同步检查已停止')
+    }
+  }
+
+  const checkForDataUpdates = async () => {
+    try {
+      // 这里可以调用API检查是否有新数据
+      // 例如：获取最新数据的时间戳
+      const response = await fetch('/api/homestay/latest-timestamp')
+      const data = await response.json()
+      
+      if (data.timestamp > dataSyncStatus.value.lastCheckTime) {
+        dataSyncStatus.value.hasNewData = true
+        dataSyncStatus.value.pendingUpdates.push({
+          type: 'homestay_update',
+          timestamp: data.timestamp,
+          time: new Date().toISOString()
+        })
+        
+        // 清除相关缓存
+        clearCacheByDataType('homestay-list')
+        console.log('🔄 检测到新数据，已清除相关缓存')
+      }
+      
+      dataSyncStatus.value.lastCheckTime = data.timestamp
+    } catch (error) {
+      console.error('数据同步检查失败:', error)
+    }
+  }
+
+  // 新增：强制刷新缓存
+  const forceRefreshCache = (dataType) => {
+    if (dataType) {
+      clearCacheByDataType(dataType)
+    } else {
+      clearAllCache()
+    }
+    console.log('🔄 强制刷新缓存完成')
   }
 
   // 持久化相关方法
@@ -457,6 +587,7 @@ export const useCacheStore = defineStore('cache', () => {
     isOffline,
     lastSyncTime,
     syncStatus,
+    dataSyncStatus,
     
     // Computed
     totalCacheSize,
@@ -484,6 +615,19 @@ export const useCacheStore = defineStore('cache', () => {
     endSync,
     syncOfflineData,
     getCacheInfo,
-    initializeCache
+    initializeCache,
+    
+    // 新增：智能缓存管理
+    getCacheAge,
+    shouldRefreshCache,
+    clearCacheByCondition,
+    clearCacheByDataType,
+    clearAllCache,
+    
+    // 新增：数据同步检查
+    startDataSyncCheck,
+    stopDataSyncCheck,
+    checkForDataUpdates,
+    forceRefreshCache
   }
 })
