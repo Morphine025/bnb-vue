@@ -75,6 +75,16 @@
 	
 	// 导入价格格式化工具
 	import { formatPrice } from '@/utils'
+	
+	// 导入状态管理
+	import { useUserStore, useCacheStore } from '../../stores'
+
+	// ==================== 状态管理 ====================
+	/** @type {import('pinia').Store} 用户状态管理 */
+	const userStore = useUserStore()
+	
+	/** @type {import('pinia').Store} 缓存状态管理 */
+	const cacheStore = useCacheStore()
 
 	// ==================== 响应式数据 ====================
 	/** @type {import('vue').Ref<Array>} 浏览历史列表数据 */

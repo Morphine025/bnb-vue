@@ -1,28 +1,11 @@
 <template>
 	<view class="publish-detail-container">
-		<!-- 免责声明弹框 -->
-		<view class="disclaimer-modal" v-if="showDisclaimer" @click="preventClose">
-			<view class="modal-content">
-				<view class="modal-header">
-					<view class="modal-title">免责声明</view>
-				</view>
-				<view class="modal-body">
-					<view class="disclaimer-text">
-						您即将发布房源信息。平台仅提供信息发布服务，无法对每一条房源的权属、真实性和准确性进行核实。所有因房源信息不实或交易纠纷产生的责任，均由信息发布者自行承担。
-					</view>
-				</view>
-				<view class="modal-footer">
-					<button 
-						class="confirm-btn" 
-						:class="{ 'disabled': countdown > 0 }"
-						:disabled="countdown > 0"
-						@click="confirmDisclaimer"
-					>
-						{{ countdown > 0 ? `请阅读免责声明（${countdown}秒）` : '我已知晓，确认' }}
-					</button>
-				</view>
-			</view>
-		</view>
+		<!-- 免责声明弹框组件 -->
+		<DisclaimerModal 
+			:show="showDisclaimer"
+			:countdown-seconds="5"
+			@confirm="confirmDisclaimer"
+		/>
 
 
 		<!-- 表单内容 -->
@@ -32,33 +15,28 @@
 				<view class="section-title">基本信息</view>
 				
 				<!-- 民宿标题 -->
-				<view class="form-item">
-					<view class="form-label">民宿标题 <text class="required">*</text></view>
-					<input 
-						v-model="formData.title" 
-						placeholder="请输入民宿标题"
-						class="form-input"
-						:class="{ 'error-input': validationErrors.title }"
-						maxlength="20"
-						@input="handleTitleInput"
-					/>
-					<view class="char-count">{{ formData.title.length }}/20</view>
-					<view v-if="validationErrors.title" class="error-tip">{{ validationErrors.title }}</view>
-				</view>
+				<FormInput
+					v-model="formData.title"
+					label="民宿标题"
+					placeholder="请输入民宿标题"
+					:maxlength="20"
+					:required="true"
+					:show-char-count="true"
+					:error="validationErrors.title"
+					@input="handleTitleInput"
+				/>
 
 				<!-- 价格 -->
 				<view class="form-item">
 					<view class="form-label">售价 <text class="required">*</text></view>
-					<view class="price-input-wrapper" :class="{ 'error-wrapper': validationErrors.price }">
+					<view class="price-input-wrapper">
 						<text class="price-symbol">¥</text>
-							<input 
-								v-model="formData.price" 
-								placeholder="请输入售价"
-								class="form-input price-input"
-								:class="{ 'error-input': validationErrors.price }"
-								type="digit"
-								@input="handlePriceInput"
-							/>
+						<input 
+							v-model="formData.price"
+							placeholder="请输入售价"
+							class="price-input"
+							@input="handlePriceInput"
+						/>
 					</view>
 					<view v-if="validationErrors.price" class="error-tip">{{ validationErrors.price }}</view>
 				</view>
@@ -68,24 +46,20 @@
 					<view class="form-item half">
 						<view class="form-label">房间数 <text class="required">*</text></view>
 						<input 
-							v-model="formData.rooms" 
-							placeholder="房间数" 
-							class="form-input"
-							:class="{ 'error-input': validationErrors.rooms }"
-							type="digit"
+							v-model="formData.rooms"
+							placeholder="房间数"
+							class="rooms-input"
 							@input="handleRoomsInput"
 						/>
 						<view v-if="validationErrors.rooms" class="error-tip">{{ validationErrors.rooms }}</view>
 					</view>
 					<view class="form-item half">
 						<view class="form-label">面积 <text class="required">*</text></view>
-						<view class="area-input-wrapper" :class="{ 'error-wrapper': validationErrors.area }">
+						<view class="area-input-wrapper">
 							<input 
-								v-model="formData.area" 
-								placeholder="面积" 
-								class="form-input area-input"
-								:class="{ 'error-input': validationErrors.area }"
-								type="digit"
+								v-model="formData.area"
+								placeholder="面积"
+								class="area-input"
 								@input="handleAreaInput"
 							/>
 							<text class="area-unit">㎡</text>
@@ -152,15 +126,13 @@
 					
 				<!-- 详细地址输入 -->
 				<view class="detail-address-container">
-					<input 
-						v-model="formData.detailAddress" 
-						placeholder="请输入详细地址（如：XX街道XX号）" 
-						class="form-input detail-address-input"
+					<FormInput
+						v-model="formData.detailAddress"
+						label="详细地址"
+						placeholder="请输入详细地址（如：XX街道XX号）"
+						:maxlength="100"
 						:disabled="!isRegionSelected"
-						:class="{ 'disabled-input': !isRegionSelected }"
-						maxlength="100"
 					/>
-					
 				</view>
 				</view>
 			</view>
@@ -170,48 +142,38 @@
 				<view class="section-title">详细信息</view>
 				
 				<!-- 民宿介绍 -->
-				<view class="form-item">
-					<view class="form-label">民宿介绍 <text class="required">*</text></view>
-					<textarea 
-						v-model="formData.introduce" 
-						placeholder="请详细介绍您的民宿特色、设施、周边环境等..."
-						class="form-textarea"
-						:class="{ 'error-input': validationErrors.introduce }"
-						maxlength="500"
-						@input="handleIntroduceInput"
-					></textarea>
-					<view class="char-count">{{ formData.introduce.length }}/500</view>
-					<view v-if="validationErrors.introduce" class="error-tip">{{ validationErrors.introduce }}</view>
-				</view>
+				<FormTextarea
+					v-model="formData.introduce"
+					label="民宿介绍"
+					placeholder="请详细介绍您的民宿特色、设施、周边环境等..."
+					:maxlength="500"
+					:required="true"
+					:show-char-count="true"
+					:error="validationErrors.introduce"
+					@input="handleIntroduceInput"
+				/>
 
 				<!-- 联系方式 -->
-				<view class="form-item">
-					<view class="form-label">联系方式 <text class="required">*</text></view>
-					<input 
-						v-model="formData.contact" 
-						placeholder="请输入手机号码" 
-						class="form-input"
-						:class="{ 'error-input': validationErrors.contact }"
-						type="number"
-						maxlength="11"
-						@input="handleContactInput"
-					/>
-					<view v-if="validationErrors.contact" class="error-tip">{{ validationErrors.contact }}</view>
-				</view>
+				<FormInput
+					v-model="formData.contact"
+					label="联系方式"
+					placeholder="请输入手机号码"
+					type="number"
+					:maxlength="11"
+					:required="true"
+					:error="validationErrors.contact"
+					@input="handleContactInput"
+				/>
 				
 				<!-- 微信号 -->
-				<view class="form-item">
-					<view class="form-label">微信号</view>
-					<input 
-						v-model="formData.wechat" 
-						placeholder="请输入微信号（选填）" 
-						class="form-input"
-						:class="{ 'error-input': validationErrors.wechat }"
-						maxlength="20"
-						@input="handleWechatInput"
-					/>
-					<view v-if="validationErrors.wechat" class="error-tip">{{ validationErrors.wechat }}</view>
-				</view>
+				<FormInput
+					v-model="formData.wechat"
+					label="微信号"
+					placeholder="请输入微信号（选填）"
+					:maxlength="20"
+					:error="validationErrors.wechat"
+					@input="handleWechatInput"
+				/>
 
 				<!-- 特色标签 -->
 				<view class="form-item">
@@ -234,31 +196,14 @@
 			<view class="form-section">
 				<view class="section-title">民宿图片</view>
 				
-				<view class="image-upload">
-					<view class="image-list">
-						<view 
-							class="image-item" 
-							v-for="(image, index) in formData.images" 
-							:key="index"
-						>
-							<image :src="image" mode="aspectFill" class="uploaded-image"></image>
-							<view class="image-delete" @click="removeImage(index)">
-								<up-icon name="close" size="16" color="#fff"></up-icon>
-							</view>
-						</view>
-						<view 
-							class="image-add" 
-							@click="chooseImages"
-							v-if="formData.images.length < 9"
-						>
-							<up-icon name="plus" size="32" color="#999"></up-icon>
-							<text class="add-text">添加图片</text>
-						</view>
-					</view>
-						<view class="image-tip">
-							最多上传9张图片，建议上传高质量照片
-						</view>
-				</view>
+				<ImageUpload 
+					v-model="formData.images"
+					:max-count="9"
+					:enable-compress="true"
+					:compress-quality="80"
+					@upload-success="handleImageUploadSuccess"
+					@upload-error="handleImageUploadError"
+				/>
 			</view>
 		</view>
 
@@ -279,72 +224,98 @@
 			</view>
 		</view>
 		
-		<!-- 地址选择器 -->
-		<AddressPicker 
-			ref="addressPickerRef"
-			@confirm="handleAddressConfirm"
-		/>
 	</view>
 </template>
 
 <script setup>
+/**
+ * 民宿发布详情页面
+ * 功能描述：支持新建和编辑民宿信息，包含完整的表单验证和图片上传功能
+ * 主要功能：表单数据管理、省市区选择、图片上传、草稿保存、数据验证
+ */
+
 import { ref, reactive, onMounted, computed } from 'vue'
 import { API } from '@/api'
 import { showLoading, hideLoading } from '@/utils'
+import DisclaimerModal from './components/DisclaimerModal.vue'
+import ImageUpload from './components/ImageUpload.vue'
+import FormInput from './components/FormInput.vue'
+import FormTextarea from './components/FormTextarea.vue'
+// FormInputWithUnit 组件已不再使用，可以删除
 
-// 响应式数据
-const loading = ref(false)
-const showDisclaimer = ref(true)
-const countdown = ref(5)
-const isDraftMode = ref(false)
+// ==================== 响应式数据 ====================
+/**
+ * 页面状态管理
+ * 控制页面整体的显示状态和交互行为
+ */
+const loading = ref(false) // 提交按钮loading状态，防止重复提交
+const showDisclaimer = ref(true) // 免责声明弹框显示状态，首次进入时显示
+const isDraftMode = ref(false) // 草稿模式标识，区分新建和草稿编辑
 
-// 编辑模式相关
-const isEditMode = ref(false)
-const homestayId = ref('')
-const pageTitle = ref('发布民宿')
+/**
+ * 编辑模式相关
+ * 处理新建和编辑两种不同的业务场景
+ */
+const isEditMode = ref(false) // 是否为编辑模式，影响页面标题和提交逻辑
+const homestayId = ref('') // 编辑的民宿ID，编辑模式下使用
+const pageTitle = ref('发布民宿') // 页面标题，根据模式动态变化
 
-// 表单数据
+/**
+ * 表单数据 - 使用reactive确保深层响应性
+ * 包含民宿发布所需的所有字段信息
+ */
 const formData = reactive({
-	title: '',
-	price: '',
-	rooms: '',
-	area: '',
-	location: '',
-	province: '',
-	city: '',
-	district: '',
-	detailAddress: '',
-	latitude: null,
-	longitude: null,
-	introduce: '',
-	contact: '',
-	wechat: '',
-	tags: [],
-	images: []
+	// 基本信息
+	title: '', // 民宿标题，必填，最大20字符
+	price: '', // 售价，必填，数字类型
+	rooms: '', // 房间数，必填，整数类型
+	area: '', // 面积，必填，数字类型
+	
+	// 位置信息
+	location: '', // 完整地址，由省市区+详细地址组成
+	province: '', // 省份，必填
+	city: '', // 城市，必填
+	district: '', // 区县，必填
+	detailAddress: '', // 详细地址，必填
+	latitude: null, // 纬度，可选，用于地图定位
+	longitude: null, // 经度，可选，用于地图定位
+	
+	// 详细信息
+	introduce: '', // 民宿介绍，必填，最大500字符
+	contact: '', // 联系方式，必填，手机号格式
+	wechat: '', // 微信号，可选，最大20字符
+	tags: [], // 特色标签，可选，最多5个
+	images: [] // 图片列表，可选，最多9张
 })
 
-// 省市区数据
-const provinceList = ref([])
-const cityList = ref([])
-const districtList = ref([])
-const provinceIndex = ref(0)
-const cityIndex = ref(0)
-const districtIndex = ref(0)
-const selectedProvince = ref({})
-const selectedCity = ref({})
-const selectedDistrict = ref({})
+// 省市区数据管理
+const provinceList = ref([]) // 省份列表
+const cityList = ref([]) // 城市列表
+const districtList = ref([]) // 区县列表
+const provinceIndex = ref(0) // 当前选中的省份索引
+const cityIndex = ref(0) // 当前选中的城市索引
+const districtIndex = ref(0) // 当前选中的区县索引
+const selectedProvince = ref({}) // 选中的省份对象
+const selectedCity = ref({}) // 选中的城市对象
+const selectedDistrict = ref({}) // 选中的区县对象
 
 // 特色标签选项
-const availableTags = ref([])
+const availableTags = ref([]) // 可选择的标签列表
 
-// 地址选择器引用
-const addressPickerRef = ref(null)
 
-// 计算属性
+// ==================== 计算属性 ====================
+/**
+ * 检查是否已选择完整的地区信息
+ * @returns {boolean} 是否已选择省市区
+ */
 const isRegionSelected = computed(() => {
 	return formData.province && formData.city && formData.district
 })
 
+/**
+ * 检查表单是否完整有效
+ * @returns {boolean} 表单是否有效
+ */
 const isFormValid = computed(() => {
 	return formData.title.trim() &&
 		formData.price &&
@@ -358,23 +329,27 @@ const isFormValid = computed(() => {
 		formData.contact.trim()
 })
 
-// 表单验证状态
+// 表单验证错误状态
 const validationErrors = reactive({
-	title: '',
-	price: '',
-	rooms: '',
-	area: '',
-	contact: '',
-	wechat: '',
-	introduce: ''
+	title: '', // 标题验证错误
+	price: '', // 价格验证错误
+	rooms: '', // 房间数验证错误
+	area: '', // 面积验证错误
+	contact: '', // 联系方式验证错误
+	wechat: '', // 微信号验证错误
+	introduce: '' // 介绍验证错误
 })
 
-// 页面加载时初始化
+// ==================== 生命周期 ====================
+/**
+ * 页面加载时初始化
+ * 功能：初始化省市区数据、标签数据，检测页面模式，加载草稿数据
+ */
 onMounted(() => {
 	// 延迟加载数据，提升页面响应速度
 	setTimeout(() => {
-		initRegionData()
-		loadTagData()
+		initRegionData() // 初始化省市区数据
+		loadTagData() // 加载标签数据
 		
 		// 检查页面参数
 		const pages = getCurrentPages()
@@ -391,50 +366,85 @@ onMounted(() => {
 	}, 150)
 })
 
-// 初始化省市区数据
-const initRegionData = async () => {
-	try {
-		const result = await API.region.getProvinces()
-		if (result.code === 1) {
-			provinceList.value = result.data
-		} else {
+// ==================== 错误处理机制 ====================
+/**
+ * 统一错误处理函数
+ * @param {Error} error - 错误对象
+ * @param {string} defaultMessage - 默认错误消息
+ * @param {string} context - 错误上下文（用于日志记录）
+ */
+const handleError = (error, defaultMessage = '操作失败，请重试', context = '') => {
+	console.error(`${context}失败:`, error)
+	uni.showToast({
+		title: error.message || defaultMessage,
+		icon: 'none'
+	})
+}
+
+/**
+ * API响应错误处理
+ * @param {Object} result - API响应结果
+ * @param {string} successMessage - 成功消息
+ * @param {string} errorContext - 错误上下文
+ * @returns {boolean} 是否成功
+ */
+const handleApiResponse = (result, successMessage = '', errorContext = '') => {
+	if (result.code === 1) {
+		if (successMessage) {
 			uni.showToast({
-				title: '获取省份数据失败',
-				icon: 'none'
+				title: successMessage,
+				icon: 'success'
 			})
 		}
-	} catch (error) {
-		console.error('获取省份数据失败:', error)
-		uni.showToast({
-			title: '网络错误，请重试',
-			icon: 'none'
-		})
+		return true
+	} else {
+		handleError(new Error(result.msg || `${errorContext}失败`), `${errorContext}失败，请重试`, errorContext)
+		return false
 	}
 }
 
-// 加载标签数据
+/**
+ * 网络请求错误处理
+ * @param {Error} error - 网络错误
+ * @param {string} context - 错误上下文
+ */
+const handleNetworkError = (error, context = '') => {
+	handleError(error, '网络错误，请检查网络连接后重试', context)
+}
+
+// ==================== 数据初始化 ====================
+/**
+ * 初始化省市区数据
+ * 功能：获取省份列表数据
+ */
+const initRegionData = async () => {
+	try {
+		const result = await API.region.getProvinces()
+		if (handleApiResponse(result, '', '获取省份数据')) {
+			provinceList.value = result.data
+		}
+	} catch (error) {
+		handleNetworkError(error, '获取省份数据')
+	}
+}
+
+/**
+ * 加载标签数据
+ * 功能：获取特色标签列表，转换数据格式
+ */
 const loadTagData = async () => {
 	try {
 		const result = await API.region.getTagList()
-		if (result.code === 1) {
+		if (handleApiResponse(result, '', '获取标签数据')) {
 			// 将后端返回的标签数据转换为前端需要的格式
 			// label用于显示，value用于提交（tag_id）
 			availableTags.value = result.data.map(tag => ({
 				label: tag.tagName,
 				value: tag.tagId
 			}))
-		} else {
-			uni.showToast({
-				title: '获取标签数据失败',
-				icon: 'none'
-			})
 		}
 	} catch (error) {
-		console.error('获取标签数据失败:', error)
-		uni.showToast({
-			title: '网络错误，请重试',
-			icon: 'none'
-		})
+		handleNetworkError(error, '获取标签数据')
 	}
 }
 
@@ -449,25 +459,28 @@ const loadDraftData = () => {
 	}
 }
 
-// 开始倒计时
-const startCountdown = () => {
-	const timer = setInterval(() => {
-		countdown.value--
-		if (countdown.value <= 0) {
-			clearInterval(timer)
-		}
-	}, 1000)
-}
-
-// 防止弹框关闭
-const preventClose = (e) => {
-	e.stopPropagation()
-}
-
-// 确认免责声明
+// ==================== 组件事件处理 ====================
+/**
+ * 确认免责声明
+ */
 const confirmDisclaimer = () => {
-	if (countdown.value > 0) return
 	showDisclaimer.value = false
+}
+
+/**
+ * 图片上传成功处理
+ * @param {Array} images - 上传成功的图片列表
+ */
+const handleImageUploadSuccess = (images) => {
+	console.log('图片上传成功:', images)
+}
+
+/**
+ * 图片上传失败处理
+ * @param {Error} error - 错误对象
+ */
+const handleImageUploadError = (error) => {
+	console.error('图片上传失败:', error)
 }
 
 // 页面加载时检测编辑模式
@@ -486,17 +499,18 @@ const checkEditMode = (options) => {
 		isEditMode.value = false
 		pageTitle.value = '发布民宿'
 		showDisclaimer.value = true
-		startCountdown()
 	} else {
 		// 默认模式（可能是从草稿进入），显示免责声明，加载草稿
 		isEditMode.value = false
 		pageTitle.value = '发布民宿'
 		showDisclaimer.value = true
-		startCountdown()
 	}
 }
 
-// 加载民宿数据用于编辑
+/**
+ * 加载民宿数据用于编辑
+ * @param {string} id - 民宿ID
+ */
 const loadHomestayData = async (id) => {
 	try {
 		showLoading({
@@ -504,7 +518,7 @@ const loadHomestayData = async (id) => {
 		})
 		
 		const result = await API.homestay.getDetail(id)
-		if (result && result.code === 1) {
+		if (handleApiResponse(result, '', '加载民宿数据')) {
 			const data = result.data
 			
 			// 预填充表单数据
@@ -553,14 +567,13 @@ const loadHomestayData = async (id) => {
 			formData.latitude = data.latitude || ''
 			formData.longitude = data.longitude || ''
 		} else {
-			throw new Error(result?.msg || '加载民宿数据失败')
+			// 加载失败，返回上一页
+			setTimeout(() => {
+				uni.navigateBack()
+			}, 1500)
 		}
 	} catch (error) {
-		console.error('加载民宿数据失败:', error)
-		uni.showToast({
-			title: error.message || '加载失败，请重试',
-			icon: 'none'
-		})
+		handleNetworkError(error, '加载民宿数据')
 		// 加载失败，返回上一页
 		setTimeout(() => {
 			uni.navigateBack()
@@ -627,7 +640,16 @@ const debounce = (func, delay) => {
 	}
 }
 
-// 实时验证函数
+/**
+ * 表单验证函数集合
+ * 提供各种字段的验证逻辑，确保数据完整性和正确性
+ */
+
+/**
+ * 验证民宿标题
+ * @param {string} value - 标题内容
+ * @returns {boolean} 验证是否通过
+ */
 const validateTitle = (value) => {
 	if (!value.trim()) {
 		setFieldError('title', '标题不能为空')
@@ -641,12 +663,20 @@ const validateTitle = (value) => {
 	}
 }
 
+/**
+ * 验证售价
+ * @param {string} value - 价格字符串
+ * @returns {boolean} 验证是否通过
+ */
 const validatePrice = (value) => {
-	const price = parseFloat(value)
-	if (!value) {
-		setFieldError('price', '价格不能为空')
+	// 如果值为空，不显示错误，只清除之前的错误
+	if (!value || value.trim() === '') {
+		clearFieldError('price')
 		return false
-	} else if (isNaN(price) || price <= 0) {
+	}
+	
+	const price = parseFloat(value)
+	if (isNaN(price) || price <= 0) {
 		setFieldError('price', '价格必须大于0')
 		return false
 	} else if (price > 999999) {
@@ -659,11 +689,14 @@ const validatePrice = (value) => {
 }
 
 const validateRooms = (value) => {
-	const rooms = parseInt(value)
-	if (!value) {
-		setFieldError('rooms', '房间数不能为空')
+	// 如果值为空，不显示错误，只清除之前的错误
+	if (!value || value.trim() === '') {
+		clearFieldError('rooms')
 		return false
-	} else if (isNaN(rooms) || rooms <= 0) {
+	}
+	
+	const rooms = parseInt(value)
+	if (isNaN(rooms) || rooms <= 0) {
 		setFieldError('rooms', '房间数必须大于0')
 		return false
 	} else if (rooms > 99) {
@@ -676,11 +709,14 @@ const validateRooms = (value) => {
 }
 
 const validateArea = (value) => {
-	const area = parseFloat(value)
-	if (!value) {
-		setFieldError('area', '面积不能为空')
+	// 如果值为空，不显示错误，只清除之前的错误
+	if (!value || value.trim() === '') {
+		clearFieldError('area')
 		return false
-	} else if (isNaN(area) || area <= 0) {
+	}
+	
+	const area = parseFloat(value)
+	if (isNaN(area) || area <= 0) {
 		setFieldError('area', '面积必须大于0')
 		return false
 	} else if (area > 99999) {
@@ -736,45 +772,48 @@ const debouncedValidateRooms = debounce(validateRooms, 300)
 const debouncedValidateArea = debounce(validateArea, 300)
 
 // 处理标题输入
-const handleTitleInput = (e) => {
-	formData.title = e.detail.value
-	debouncedValidateTitle(e.detail.value)
+const handleTitleInput = (value) => {
+	formData.title = value
+	debouncedValidateTitle(value)
 }
 
 // 处理价格输入
 const handlePriceInput = (e) => {
-	formData.price = e.detail.value
-	debouncedValidatePrice(e.detail.value)
+	const value = e.detail ? e.detail.value : e.target.value
+	formData.price = value
+	validatePrice(value)
 }
 
 // 处理房间数输入
 const handleRoomsInput = (e) => {
-	formData.rooms = e.detail.value
-	debouncedValidateRooms(e.detail.value)
+	const value = e.detail ? e.detail.value : e.target.value
+	formData.rooms = value
+	validateRooms(value)
 }
 
 // 处理面积输入
 const handleAreaInput = (e) => {
-	formData.area = e.detail.value
-	debouncedValidateArea(e.detail.value)
+	const value = e.detail ? e.detail.value : e.target.value
+	formData.area = value
+	validateArea(value)
 }
 
 // 处理介绍输入
-const handleIntroduceInput = (e) => {
-	formData.introduce = e.detail.value
-	validateIntroduce(e.detail.value)
+const handleIntroduceInput = (value) => {
+	formData.introduce = value
+	validateIntroduce(value)
 }
 
 // 处理联系方式输入
-const handleContactInput = (e) => {
-	formData.contact = e.detail.value
-	validateContact(e.detail.value)
+const handleContactInput = (value) => {
+	formData.contact = value
+	validateContact(value)
 }
 
 // 处理微信号输入
-const handleWechatInput = (e) => {
-	formData.wechat = e.detail.value
-	validateWechat(e.detail.value)
+const handleWechatInput = (value) => {
+	formData.wechat = value
+	validateWechat(value)
 }
 
 // 省份选择
@@ -817,45 +856,33 @@ const onDistrictChange = (e) => {
 	formData.district = selectedDistrict.value.name
 }
 
-// 加载城市数据
+/**
+ * 加载城市数据
+ * @param {string} provinceCode - 省份代码
+ */
 const loadCityData = async (provinceCode) => {
 	try {
 		const result = await API.region.getCitiesByProvince(provinceCode)
-		if (result.code === 1) {
+		if (handleApiResponse(result, '', '获取城市数据')) {
 			cityList.value = result.data
-		} else {
-			uni.showToast({
-				title: '获取城市数据失败',
-				icon: 'none'
-			})
 		}
 	} catch (error) {
-		console.error('获取城市数据失败:', error)
-		uni.showToast({
-			title: '网络错误，请重试',
-			icon: 'none'
-		})
+		handleNetworkError(error, '获取城市数据')
 	}
 }
 
-// 加载区县数据
+/**
+ * 加载区县数据
+ * @param {string} cityCode - 城市代码
+ */
 const loadDistrictData = async (cityCode) => {
 	try {
 		const result = await API.region.getDistrictsByCity(cityCode)
-		if (result.code === 1) {
+		if (handleApiResponse(result, '', '获取区县数据')) {
 			districtList.value = result.data
-		} else {
-			uni.showToast({
-				title: '获取区县数据失败',
-				icon: 'none'
-			})
 		}
 	} catch (error) {
-		console.error('获取区县数据失败:', error)
-		uni.showToast({
-			title: '网络错误，请重试',
-			icon: 'none'
-		})
+		handleNetworkError(error, '获取区县数据')
 	}
 }
 
@@ -876,137 +903,7 @@ const toggleTag = (tagValue) => {
 	}
 }
 
-// 上传图片到服务器
-const uploadImageToServer = async (filePath) => {
-	try {
-		const imageUrl = await API.uploadImage(filePath)
-		console.log('图片上传成功:', imageUrl)
-		return imageUrl
-	} catch (error) {
-		console.error('图片上传失败:', error)
-		throw new Error('图片上传失败: ' + error.message)
-	}
-}
 
-// 图片压缩函数
-const compressImage = (filePath) => {
-	return new Promise((resolve, reject) => {
-		uni.compressImage({
-			src: filePath,
-			quality: 80, // 压缩质量 0-100
-			success: (res) => {
-				resolve(res.tempFilePath)
-			},
-			fail: (error) => {
-				console.error('图片压缩失败:', error)
-				reject(error)
-			}
-		})
-	})
-}
-
-// 验证图片格式和大小
-const validateImage = (filePath) => {
-	return new Promise((resolve, reject) => {
-		uni.getFileInfo({
-			filePath: filePath,
-			success: (res) => {
-				// 检查文件大小 (5MB = 5 * 1024 * 1024 bytes)
-				const maxSize = 5 * 1024 * 1024
-				if (res.size > maxSize) {
-					reject(new Error('图片大小不能超过5MB'))
-					return
-				}
-				
-				// 检查文件扩展名
-				const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp']
-				const extension = filePath.toLowerCase().substring(filePath.lastIndexOf('.'))
-				if (!allowedExtensions.includes(extension)) {
-					reject(new Error('只支持jpg、png、webp格式的图片'))
-					return
-				}
-				
-				resolve(true)
-			},
-			fail: (error) => {
-				reject(new Error('获取图片信息失败'))
-			}
-		})
-	})
-}
-
-// 选择图片
-const chooseImages = async () => {
-	try {
-		const result = await new Promise((resolve, reject) => {
-			uni.chooseImage({
-				count: 9 - formData.images.length,
-				sizeType: ['original'], // 先选择原图
-				sourceType: ['album', 'camera'],
-				success: resolve,
-				fail: reject
-			})
-		})
-		
-		// 显示加载提示
-		showLoading({
-			title: '处理图片中...'
-		})
-		
-		const processedImages = []
-		
-		// 逐个处理图片
-		for (const filePath of result.tempFilePaths) {
-			try {
-				// 验证图片格式和大小
-				await validateImage(filePath)
-				
-				// 压缩图片
-				const compressedPath = await compressImage(filePath)
-				
-				// 上传图片到服务器
-				const imageUrl = await uploadImageToServer(compressedPath)
-				processedImages.push(imageUrl)
-			} catch (error) {
-				console.error('处理图片失败:', error)
-				uni.showToast({
-					title: error.message || '图片处理失败',
-					icon: 'none'
-				})
-				// 如果某个图片处理失败，继续处理其他图片
-				continue
-			}
-		}
-		
-		// 添加处理成功的图片
-		if (processedImages.length > 0) {
-			formData.images.push(...processedImages)
-			uni.showToast({
-				title: `成功添加${processedImages.length}张图片`,
-				icon: 'success'
-			})
-		}
-		
-	} catch (error) {
-		console.error('选择图片失败:', error)
-		uni.showToast({
-			title: error.message || '选择图片失败',
-			icon: 'none'
-		})
-	} finally {
-		hideLoading()
-	}
-}
-
-// 删除图片
-const removeImage = (index) => {
-	formData.images.splice(index, 1)
-}
-
-// 地址确认
-const handleAddressConfirm = (address) => {
-	formData.detailAddress = address
-}
 
 // 保存草稿
 const saveDraft = () => {
@@ -1079,14 +976,9 @@ const submitForm = async () => {
 			result = await API.homestay.publish(submitData)
 		}
 		
-		if (result.code === 1) {
+		if (handleApiResponse(result, isEditMode.value ? '更新成功' : '发布成功', isEditMode.value ? '更新民宿' : '发布民宿')) {
 			// 清除草稿
 			uni.removeStorageSync('homestay_draft')
-			
-			uni.showToast({
-				title: isEditMode.value ? '更新成功' : '发布成功',
-				icon: 'success'
-			})
 			
 			// 设置首页刷新标记
 			uni.setStorageSync('needRefreshHomePage', true)
@@ -1130,16 +1022,10 @@ const submitForm = async () => {
 					})
 				}
 			}, 1500)
-		} else {
-			throw new Error(result.msg || (isEditMode.value ? '更新失败' : '发布失败'))
 		}
 		
 	} catch (error) {
-		console.error('发布失败:', error)
-		uni.showToast({
-			title: error.message || '发布失败，请重试',
-			icon: 'none'
-		})
+		handleError(error, isEditMode.value ? '更新失败，请重试' : '发布失败，请重试', isEditMode.value ? '更新民宿' : '发布民宿')
 	} finally {
 		loading.value = false
 	}
@@ -1147,78 +1033,6 @@ const submitForm = async () => {
 </script>
 
 <style lang="scss" scoped>
-	/* 免责声明弹框样式 */
-	.disclaimer-modal {
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: rgba(0, 0, 0, 0.6);
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		z-index: 9999;
-		
-		.modal-content {
-			background: #fff;
-			border-radius: 20rpx;
-			margin: 40rpx;
-			max-width: 600rpx;
-			width: 100%;
-			box-shadow: 0 20rpx 60rpx rgba(0, 0, 0, 0.3);
-			
-			.modal-header {
-				padding: 40rpx 40rpx 20rpx;
-				text-align: center;
-				border-bottom: 1rpx solid #f0f0f0;
-				
-				.modal-title {
-					font-size: 36rpx;
-					font-weight: 600;
-					color: #333;
-				}
-			}
-			
-			.modal-body {
-				padding: 30rpx 40rpx;
-				
-				.disclaimer-text {
-					font-size: 28rpx;
-					line-height: 1.6;
-					color: #666;
-					text-align: justify;
-				}
-			}
-			
-			.modal-footer {
-				padding: 20rpx 40rpx 40rpx;
-				text-align: center;
-				
-				.confirm-btn {
-					width: 100%;
-					height: 80rpx;
-					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-					color: #fff;
-					border: none;
-					border-radius: 40rpx;
-					font-size: 28rpx;
-					font-weight: 600;
-					transition: all 0.3s ease;
-					
-					&.disabled {
-						background: #ccc;
-						color: #999;
-						cursor: not-allowed;
-					}
-					
-					&:not(.disabled):active {
-						transform: scale(0.95);
-					}
-				}
-			}
-		}
-	}
 
 	.publish-detail-container {
 		background-color: #f8f9fa;
@@ -1255,70 +1069,6 @@ const submitForm = async () => {
 		}
 	}
 
-	/* 表单项目 */
-	.form-item {
-		margin-bottom: 30rpx;
-
-		&:last-child {
-			margin-bottom: 0;
-		}
-
-		.form-label {
-			font-size: 28rpx;
-			color: #333;
-			margin-bottom: 15rpx;
-			font-weight: 500;
-
-			.required {
-				color: #ff4757;
-				margin-left: 5rpx;
-			}
-		}
-
-		.form-input {
-			width: 100%;
-			height: 80rpx;
-			padding: 0 20rpx;
-			border: 2rpx solid #e9ecef;
-			border-radius: 12rpx;
-			font-size: 28rpx;
-			color: #333;
-			background: #f8f9fa;
-			transition: all 0.3s ease;
-			box-sizing: border-box;
-
-			&:focus {
-				border-color: #667eea;
-				background: #fff;
-			}
-		}
-
-		.form-textarea {
-			width: 100%;
-			min-height: 200rpx;
-			padding: 20rpx;
-			border: 2rpx solid #e9ecef;
-			border-radius: 12rpx;
-			font-size: 28rpx;
-			color: #333;
-			background: #f8f9fa;
-			transition: all 0.3s ease;
-			resize: none;
-			box-sizing: border-box;
-
-			&:focus {
-				border-color: #667eea;
-				background: #fff;
-			}
-		}
-
-		.char-count {
-			text-align: right;
-			font-size: 24rpx;
-			color: #999;
-			margin-top: 10rpx;
-		}
-	}
 
 	/* 标签容器 */
 	.tag-container {
@@ -1361,26 +1111,21 @@ const submitForm = async () => {
 		}
 	}
 
-	/* 价格输入 */
+	/* 价格输入框样式 */
 	.price-input-wrapper {
 		display: flex;
 		align-items: center;
-		background: #f8f9fa;
+		background: #fff;
 		border: 2rpx solid #e9ecef;
-		border-radius: 12rpx;
-		transition: all 0.3s ease;
+		border-radius: 8rpx;
+		height: 80rpx;
 
-		&:focus-within {
-			border-color: #667eea;
-			background: #fff;
+		.price-symbol {
+			font-size: 28rpx;
+			color: #333;
+			font-weight: 600;
+			padding: 0 15rpx;
 		}
-
-			.price-symbol {
-				font-size: 28rpx;
-				color: #333;
-				font-weight: 600;
-				padding: 0 15rpx;
-			}
 
 		.price-input {
 			flex: 1;
@@ -1388,43 +1133,41 @@ const submitForm = async () => {
 			background: transparent;
 			height: 80rpx;
 			padding: 0 10rpx;
-
-			&:focus {
-				background: transparent;
-			}
-		}
-
-		.price-unit {
-			font-size: 24rpx;
-			color: #999;
-			padding: 0 15rpx;
+			font-size: 28rpx;
+			color: #333;
 		}
 	}
 
-	/* 面积输入 */
+	/* 房间数输入框样式 */
+	.rooms-input {
+		width: 100%;
+		height: 80rpx;
+		padding: 0 20rpx;
+		border: 2rpx solid #e9ecef;
+		border-radius: 8rpx;
+		font-size: 28rpx;
+		color: #333;
+		background: #fff;
+		box-sizing: border-box;
+	}
+
+	/* 面积输入框样式 */
 	.area-input-wrapper {
 		display: flex;
 		align-items: center;
-		background: #f8f9fa;
+		background: #fff;
 		border: 2rpx solid #e9ecef;
-		border-radius: 12rpx;
-		transition: all 0.3s ease;
-
-		&:focus-within {
-			border-color: #667eea;
-			background: #fff;
-		}
+		border-radius: 8rpx;
+		height: 80rpx;
 
 		.area-input {
 			flex: 1;
 			border: none;
 			background: transparent;
 			height: 80rpx;
-			padding: 0 20rpx;
-
-			&:focus {
-				background: transparent;
-			}
+			padding: 0 10rpx;
+			font-size: 28rpx;
+			color: #333;
 		}
 
 		.area-unit {
@@ -1434,103 +1177,16 @@ const submitForm = async () => {
 		}
 	}
 
-	/* 地址选择器 */
-	.address-selector {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 24rpx;
-		background: #fff;
-		border: 2rpx solid #e0e0e0;
-		border-radius: 12rpx;
-		transition: all 0.3s ease;
-		cursor: pointer;
-
-		&:active {
-			border-color: #667eea;
-			box-shadow: 0 0 0 4rpx rgba(102, 126, 234, 0.1);
-		}
-
-		.address-display {
-			flex: 1;
-			
-			.address-text {
-				font-size: 28rpx;
-				color: #333;
-				line-height: 1.4;
-			}
-			
-			.address-placeholder {
-				font-size: 28rpx;
-				color: #999;
-			}
-		}
+	/* 错误提示样式 */
+	.error-tip {
+		font-size: 24rpx;
+		color: #ff4d4f;
+		margin-top: 10rpx;
+		line-height: 1.4;
 	}
 
-	/* 图片上传 */
-	.image-upload {
-		.image-list {
-			display: flex;
-			flex-wrap: wrap;
-			gap: 20rpx;
-		}
 
-		.image-item {
-			position: relative;
-			width: 200rpx;
-			height: 200rpx;
-			border-radius: 12rpx;
-			overflow: hidden;
 
-			.uploaded-image {
-				width: 100%;
-				height: 100%;
-			}
-
-			.image-delete {
-				position: absolute;
-				top: 10rpx;
-				right: 10rpx;
-				width: 40rpx;
-				height: 40rpx;
-				background: rgba(0, 0, 0, 0.6);
-				border-radius: 50%;
-				display: flex;
-				align-items: center;
-				justify-content: center;
-			}
-		}
-
-		.image-add {
-			width: 200rpx;
-			height: 200rpx;
-			border: 2rpx dashed #ccc;
-			border-radius: 12rpx;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			justify-content: center;
-			background: #f8f9fa;
-			transition: all 0.3s ease;
-
-			&:active {
-				background: #e9ecef;
-			}
-
-			.add-text {
-				font-size: 24rpx;
-				color: #999;
-				margin-top: 10rpx;
-			}
-		}
-
-		.image-tip {
-			font-size: 24rpx;
-			color: #999;
-			margin-top: 20rpx;
-			text-align: center;
-		}
-	}
 
 	/* 底部按钮 */
 	.form-footer {
@@ -1590,63 +1246,9 @@ const submitForm = async () => {
 		}
 	}
 	
-	/* 省市区选择器样式 - 横向排列 */
-	.location-selector-horizontal {
-		display: flex;
-		flex-direction: row;
-		gap: 16rpx;
-		margin-top: 20rpx;
-		align-items: center;
-	}
-	
-	.selector-item-horizontal {
-		flex: 1;
-		min-width: 0;
-	}
-	
-	.picker-display-horizontal {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		background: #f8f9fa;
-		border: 2rpx solid #e9ecef;
-		border-radius: 8rpx;
-		padding: 16rpx 20rpx;
-		transition: all 0.3s ease;
-		height: 45rpx;
-		
-		&:active {
-			background: #e9ecef;
-			border-color: #667eea;
-		}
-	}
-	
-	.picker-text {
-		font-size: 26rpx;
-		color: #333;
-		font-weight: 500;
-		flex: 1;
-		text-align: center;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-	
-	.picker-placeholder {
-		font-size: 26rpx;
-		color: #999;
-		flex: 1;
-		text-align: center;
-	}
 	
 	/* 省市区选择器样式 */
 	.region-selector {
-		// margin-top: 20rpx;
-		// background: #f8f9fa;
-		// border: 2rpx solid #e9ecef;
-		// border-radius: 12rpx;
-		// padding: 20rpx;
-		
 		.region-row {
 			display: flex;
 			flex-direction: row;
@@ -1657,14 +1259,6 @@ const submitForm = async () => {
 		.region-item {
 			flex: 1;
 			min-width: 0;
-			
-			.region-label {
-				font-size: 24rpx;
-				color: #666;
-				margin-bottom: 8rpx;
-				text-align: center;
-				font-weight: 500;
-			}
 			
 			.region-picker {
 				.picker-display {
@@ -1726,30 +1320,5 @@ const submitForm = async () => {
 		}
 	}
 	
-	/* 区域提示样式 */
-	.region-tip {
-		font-size: 24rpx;
-		color: #ff4d4f;
-		margin-top: 10rpx;
-		text-align: center;
-	}
 	
-	/* 错误输入框样式 */
-	.error-input {
-		border-color: #ff4d4f !important;
-		background: #fff2f0 !important;
-	}
-	
-	.error-wrapper {
-		border-color: #ff4d4f !important;
-		background: #fff2f0 !important;
-	}
-	
-	/* 错误提示样式 */
-	.error-tip {
-		font-size: 24rpx;
-		color: #ff4d4f;
-		margin-top: 10rpx;
-		line-height: 1.4;
-	}
 </style>

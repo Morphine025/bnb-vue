@@ -136,13 +136,11 @@
 	 */
 	
 	// 导入Vue响应式API
-	import { ref, reactive, computed, onMounted } from 'vue'
+	import { ref } from 'vue'
 	
 	// 导入uni-app生命周期钩子
-import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcloudio/uni-app'
+	import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcloudio/uni-app'
 	
-	
-	// 导入API接口
 	// 导入API接口 - 使用新的统一API
 	import { API } from '../../api'
 	
@@ -158,22 +156,71 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 		HOMESTAY_STATUS 
 	} from '@/utils'
 	
-	// 响应式数据定义
+	// 导入状态管理
+	import { useUserStore, useCacheStore } from '../../stores'
+
+	// ==================== 状态管理 ====================
+	/** @type {import('pinia').Store} 用户状态管理 */
+	const userStore = useUserStore()
+	
+	/** @type {import('pinia').Store} 缓存状态管理 */
+	const cacheStore = useCacheStore()
+
+	// ==================== 响应式数据 ====================
+	/** @type {import('vue').Ref<boolean>} 加载状态 */
 	const loading = ref(false)
+	
+	/** @type {import('vue').Ref<boolean>} 加载更多状态 */
 	const loadingMore = ref(false)
+	
+	/** @type {import('vue').Ref<Array>} 民宿列表数据 */
 	const homestayList = ref([])
+	
+	/** @type {import('vue').Ref<number>} 总数量 */
 	const total = ref(0)
+	
+	/** @type {import('vue').Ref<boolean>} 是否有更多数据 */
 	const hasMore = ref(true)
+	
+	/** @type {import('vue').Ref<number>} 当前页码 */
 	const currentPage = ref(1)
+	
+	/** @type {number} 每页数据量 */
 	const pageSize = 10
 	
-	// 移除虚拟滚动，使用普通列表渲染
-	
-	// 防抖处理
+	/** @type {import('vue').Ref<boolean>} 导航防抖状态 */
 	const isNavigating = ref(false)
-	
+
+	// ==================== 工具函数 ====================
+	/**
+	 * 统一的错误处理函数
+	 * @param {Error} error - 错误对象
+	 * @param {string} defaultMessage - 默认错误消息
+	 * @param {string} operation - 操作名称
+	 */
+	const handleError = (error, defaultMessage = '操作失败', operation = '') => {
+		console.error(`❌ ${operation}失败:`, error)
+		uni.showToast({
+			title: error.message || defaultMessage,
+			icon: 'none'
+		})
+	}
+
+	/**
+	 * 显示成功提示
+	 * @param {string} message - 成功消息
+	 */
+	const showSuccess = (message) => {
+		uni.showToast({
+			title: message,
+			icon: 'success'
+		})
+	}
+
+	// ==================== 数据管理方法 ====================
 	/**
 	 * 加载数据
+	 * @description 从服务器获取用户的发布列表数据
 	 */
 	const loadData = async () => {
 		if (loading.value) return
@@ -181,6 +228,8 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 		try {
 			loading.value = true
 			currentPage.value = 1
+			
+			console.log(`📱 加载我的发布列表 - 页码: ${currentPage.value}, 每页: ${pageSize}`)
 			
 			const response = await API.user.getMyList({
 				page: currentPage.value,
@@ -192,27 +241,20 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 				homestayList.value = pageData.list || []
 				total.value = pageData.total || 0
 				hasMore.value = homestayList.value.length < total.value
-				console.log('我的发布列表加载成功:', homestayList.value.length, '条')
+				console.log('✅ 我的发布列表加载成功:', homestayList.value.length, '条')
 			} else {
-				console.error('我的发布列表加载失败:', response)
-				uni.showToast({
-					title: '加载失败',
-					icon: 'none'
-				})
+				throw new Error(response?.message || '数据格式异常')
 			}
 		} catch (error) {
-			console.error('我的发布列表加载异常:', error)
-			uni.showToast({
-				title: '加载失败',
-				icon: 'none'
-			})
+			handleError(error, '加载失败，请重试', '加载我的发布列表')
 		} finally {
 			loading.value = false
 		}
 	}
 	
 	/**
-	 * 加载更多
+	 * 加载更多数据
+	 * @description 分页加载更多发布列表数据
 	 */
 	const loadMore = async () => {
 		if (loadingMore.value || !hasMore.value) return
@@ -220,6 +262,8 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 		try {
 			loadingMore.value = true
 			currentPage.value++
+			
+			console.log(`📱 加载更多 - 页码: ${currentPage.value}`)
 			
 			const response = await API.user.getMyList({
 				page: currentPage.value,
@@ -232,12 +276,12 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 				homestayList.value.push(...newList)
 				total.value = pageData.total || total.value
 				hasMore.value = homestayList.value.length < total.value
-				console.log('加载更多成功:', newList.length, '条')
+				console.log('✅ 加载更多成功:', newList.length, '条')
 			} else {
-				console.error('加载更多失败:', response)
+				throw new Error(response?.message || '加载更多失败')
 			}
 		} catch (error) {
-			console.error('加载更多异常:', error)
+			handleError(error, '加载更多失败，请重试', '加载更多数据')
 		} finally {
 			loadingMore.value = false
 		}
@@ -245,34 +289,42 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 	
 	/**
 	 * 刷新数据
+	 * @description 重新加载第一页数据
 	 */
 	const refreshData = async () => {
 		await loadData()
 	}
 	
 	/**
-	 * 移除项目
+	 * 从列表中移除指定项目
+	 * @param {string} homestayId - 民宿ID
 	 */
 	const removeItem = (homestayId) => {
 		const index = homestayList.value.findIndex(item => item.homestayId === homestayId)
 		if (index > -1) {
 			homestayList.value.splice(index, 1)
 			total.value--
+			console.log(`📱 移除项目成功 - ID: ${homestayId}`)
 		}
 	}
 	
 	/**
 	 * 更新项目状态
+	 * @param {string} homestayId - 民宿ID
+	 * @param {string} status - 新状态
 	 */
 	const updateItemStatus = (homestayId, status) => {
 		const item = homestayList.value.find(item => item.homestayId === homestayId)
 		if (item) {
 			item.status = status
+			console.log(`📱 更新项目状态 - ID: ${homestayId}, 状态: ${status}`)
 		}
 	}
 	
+	// ==================== 生命周期钩子 ====================
 	/**
 	 * 页面加载时获取数据
+	 * @description 页面初始化时加载发布列表数据
 	 */
 	onLoad(() => {
 		// 延迟加载，提升页面响应速度
@@ -284,35 +336,56 @@ import { onLoad, onReachBottom, onPullDownRefresh, onShow, onUnload } from '@dcl
 		preloadDetailPage()
 	})
 
-// 返回后精准更新：监听发布详情页的更新事件
-const onHomestayUpdated = ({ homestayId, data }) => {
-    try {
-        if (!homestayId || !data) return
-        const index = homestayList.value.findIndex(item => item.homestayId === homestayId)
-        if (index > -1) {
-            homestayList.value[index] = { ...homestayList.value[index], ...data }
-        } else {
-            // 当前页未找到该项，保守起见刷新第一页
-            loadData()
-        }
-    } catch (e) {
-        console.warn('应用更新数据失败，回退整页刷新:', e)
-        loadData()
-    }
-}
+	// ==================== 事件监听 ====================
+	/**
+	 * 监听民宿更新事件
+	 * @description 当从编辑页面返回时，精准更新对应的民宿数据
+	 * @param {Object} params - 事件参数
+	 * @param {string} params.homestayId - 民宿ID
+	 * @param {Object} params.data - 更新后的数据
+	 */
+	const onHomestayUpdated = ({ homestayId, data }) => {
+		try {
+			if (!homestayId || !data) return
+			console.log(`📱 接收民宿更新事件 - ID: ${homestayId}`)
+			
+			const index = homestayList.value.findIndex(item => item.homestayId === homestayId)
+			if (index > -1) {
+				homestayList.value[index] = { ...homestayList.value[index], ...data }
+				console.log('✅ 精准更新民宿数据成功')
+			} else {
+				// 当前页未找到该项，保守起见刷新第一页
+				console.log('⚠️ 当前页未找到对应项目，刷新整页数据')
+				loadData()
+			}
+		} catch (e) {
+			console.warn('应用更新数据失败，回退整页刷新:', e)
+			loadData()
+		}
+	}
 
-onShow(() => {
-    // 确保事件只绑定一次
-    uni.$off && uni.$off('homestay-updated', onHomestayUpdated)
-    uni.$on && uni.$on('homestay-updated', onHomestayUpdated)
-})
+	/**
+	 * 页面显示时绑定事件监听
+	 */
+	onShow(() => {
+		// 确保事件只绑定一次
+		uni.$off && uni.$off('homestay-updated', onHomestayUpdated)
+		uni.$on && uni.$on('homestay-updated', onHomestayUpdated)
+		console.log('📱 绑定民宿更新事件监听')
+	})
 
-onUnload(() => {
-    uni.$off && uni.$off('homestay-updated', onHomestayUpdated)
-})
+	/**
+	 * 页面卸载时解绑事件监听
+	 */
+	onUnload(() => {
+		uni.$off && uni.$off('homestay-updated', onHomestayUpdated)
+		console.log('📱 解绑民宿更新事件监听')
+	})
 	
+	// ==================== 页面预加载 ====================
 	/**
 	 * 预加载详情页面
+	 * @description 预加载详情页面以提升用户体验，减少跳转时间
 	 */
 	const preloadDetailPage = () => {
 		// 某些平台（如微信小程序）不支持 preloadPage，做能力检测
@@ -322,9 +395,9 @@ onUnload(() => {
 				uni.preloadPage({
 					url: '/pages/detail/detail'
 				})
-				console.log('详情页面预加载成功')
+				console.log('✅ 详情页面预加载成功')
 			} else {
-				console.log('当前平台不支持页面预加载，已跳过')
+				console.log('⚠️ 当前平台不支持页面预加载，已跳过')
 			}
 		} catch (error) {
 			console.warn('详情页面预加载失败:', error)
@@ -333,26 +406,36 @@ onUnload(() => {
 	
 	/**
 	 * 触底加载更多
+	 * @description 当用户滚动到页面底部时自动加载更多数据
 	 */
 	onReachBottom(() => {
 		if (hasMore.value && !loadingMore.value) {
+			console.log('📱 触底加载更多')
 			loadMore()
 		}
 	})
 	
 	/**
 	 * 下拉刷新
+	 * @description 用户下拉页面时刷新数据
 	 */
 	onPullDownRefresh(async () => {
 		try {
+			console.log('📱 下拉刷新数据')
 			await refreshData()
 		} finally {
 			uni.stopPullDownRefresh()
 		}
 	})
 	
+	// ==================== 导航方法 ====================
 	/**
-	 * 跳转到详情页
+	 * 跳转到民宿详情页
+	 * @description 点击民宿项时跳转到对应的详情页，包含状态检查和预加载
+	 * @param {Object} item - 民宿数据对象
+	 * @param {string} item.homestayId - 民宿ID
+	 * @param {string} item.status - 民宿状态
+	 * @param {string} item.title - 民宿标题
 	 */
 	const goToDetail = async (item) => {
 		if (!item || !item.homestayId) {
@@ -501,6 +584,7 @@ onUnload(() => {
 	
 	/**
 	 * 跳转到发布页面
+	 * @description 从空状态页面跳转到发布新民宿的页面
 	 */
 	const goToPublish = () => {
 		// 防抖处理
@@ -538,8 +622,13 @@ onUnload(() => {
 		}, 100)
 	}
 	
+	// ==================== 操作方法 ====================
 	/**
 	 * 编辑民宿
+	 * @description 编辑指定的民宿信息，包含状态检查和权限验证
+	 * @param {Object} item - 民宿数据对象
+	 * @param {string} item.homestayId - 民宿ID
+	 * @param {string} item.status - 民宿状态
 	 */
 	const editHomestay = (item) => {
 		// 检查民宿状态是否允许编辑
@@ -599,6 +688,10 @@ onUnload(() => {
 	
 	/**
 	 * 删除民宿
+	 * @description 删除指定的民宿，需要用户确认
+	 * @param {Object} item - 民宿数据对象
+	 * @param {string} item.homestayId - 民宿ID
+	 * @param {string} item.title - 民宿标题
 	 */
 	const deleteHomestayAction = async (item) => {
 		uni.showModal({
@@ -611,25 +704,20 @@ onUnload(() => {
 							title: '删除中...'
 						})
 						
+						console.log(`📱 删除民宿 - ID: ${item.homestayId}`)
+						
 						const result = await API.homestay.delete(item.homestayId)
 						
 						if (result && result.code === 1) {
 							// 从列表中移除该项目
 							removeItem(item.homestayId)
-							
-							uni.showToast({
-								title: '删除成功',
-								icon: 'success'
-							})
+							showSuccess('删除成功')
+							console.log('✅ 民宿删除成功')
 						} else {
 							throw new Error(result?.msg || '删除失败')
 						}
 					} catch (error) {
-						console.error('删除民宿失败:', error)
-						uni.showToast({
-							title: error.message || '删除失败',
-							icon: 'none'
-						})
+						handleError(error, '删除失败，请重试', '删除民宿')
 					} finally {
 						hideLoading()
 					}
@@ -640,6 +728,10 @@ onUnload(() => {
 	
 	/**
 	 * 下架民宿
+	 * @description 将民宿从上线状态改为下架状态
+	 * @param {Object} item - 民宿数据对象
+	 * @param {string} item.homestayId - 民宿ID
+	 * @param {string} item.title - 民宿标题
 	 */
 	const offlineHomestayAction = async (item) => {
 		uni.showModal({
@@ -652,25 +744,20 @@ onUnload(() => {
 							title: '下架中...'
 						})
 						
+						console.log(`📱 下架民宿 - ID: ${item.homestayId}`)
+						
 						const result = await API.homestay.offline(item.homestayId)
 						
 						if (result && result.code === 1) {
 							// 更新项目状态
 							updateItemStatus(item.homestayId, '3')
-							
-							uni.showToast({
-								title: '下架成功',
-								icon: 'success'
-							})
+							showSuccess('下架成功')
+							console.log('✅ 民宿下架成功')
 						} else {
 							throw new Error(result?.msg || '下架失败')
 						}
 					} catch (error) {
-						console.error('下架民宿失败:', error)
-						uni.showToast({
-							title: error.message || '下架失败',
-							icon: 'none'
-						})
+						handleError(error, '下架失败，请重试', '下架民宿')
 					} finally {
 						hideLoading()
 					}
@@ -681,6 +768,10 @@ onUnload(() => {
 	
 	/**
 	 * 上架民宿
+	 * @description 将民宿从下架状态改为上线状态，需要重新审核
+	 * @param {Object} item - 民宿数据对象
+	 * @param {string} item.homestayId - 民宿ID
+	 * @param {string} item.title - 民宿标题
 	 */
 	const onlineHomestayAction = async (item) => {
 		uni.showModal({
@@ -693,25 +784,20 @@ onUnload(() => {
 							title: '上架中...'
 						})
 						
+						console.log(`📱 上架民宿 - ID: ${item.homestayId}`)
+						
 						const result = await API.homestay.online(item.homestayId)
 						
 						if (result && result.code === 1) {
 							// 更新项目状态为审核中
 							updateItemStatus(item.homestayId, '0')
-							
-							uni.showToast({
-								title: '上架成功，等待审核',
-								icon: 'success'
-							})
+							showSuccess('上架成功，等待审核')
+							console.log('✅ 民宿上架成功')
 						} else {
 							throw new Error(result?.msg || '上架失败')
 						}
 					} catch (error) {
-						console.error('上架民宿失败:', error)
-						uni.showToast({
-							title: error.message || '上架失败',
-							icon: 'none'
-						})
+						handleError(error, '上架失败，请重试', '上架民宿')
 					} finally {
 						hideLoading()
 					}
@@ -720,8 +806,11 @@ onUnload(() => {
 		})
 	}
 	
+	// ==================== 工具函数 ====================
 	/**
 	 * 处理图片加载错误
+	 * @description 当图片加载失败时的错误处理
+	 * @param {Event} e - 图片加载错误事件
 	 */
 	const handleImageError = (e) => {
 		console.warn('图片加载失败:', e)
@@ -729,7 +818,10 @@ onUnload(() => {
 	}
 	
 	/**
-	 * 格式化位置信息 - 只显示省-市-区县
+	 * 格式化位置信息
+	 * @description 将详细地址格式化为省-市-区县格式
+	 * @param {string} location - 原始位置信息
+	 * @returns {string} 格式化后的位置信息
 	 */
 	const formatLocation = (location) => {
 		if (!location) return ''
@@ -750,7 +842,12 @@ onUnload(() => {
 	
 	
 	/**
-	 * 格式化时间
+	 * 格式化时间显示
+	 * @description 将时间字符串转换为相对时间显示，支持iOS兼容性处理
+	 * @param {string} timeStr - 时间字符串，格式如 "yyyy-MM-dd HH:mm:ss"
+	 * @returns {string} 格式化后的时间显示文本
+	 * @example
+	 * formatTime('2024-01-15 14:30:00') // 返回 "2小时前" 或 "刚刚" 等
 	 */
 	const formatTime = (timeStr) => {
 		if (!timeStr) return ''
@@ -801,6 +898,7 @@ onUnload(() => {
 </script>
 
 <style lang="scss" scoped>
+	/* ==================== 页面容器样式 ==================== */
 	.container {
 		min-height: 100vh;
 		background-color: #f5f5f5;
@@ -816,6 +914,7 @@ onUnload(() => {
 		}
 	}
 	
+	/* ==================== 加载状态样式 ==================== */
 	.loading-container {
 		display: flex;
 		flex-direction: column;
@@ -849,6 +948,7 @@ onUnload(() => {
 		100% { transform: rotate(360deg); }
 	}
 	
+	/* ==================== 空状态样式 ==================== */
 	.empty-container {
 		display: flex;
 		flex-direction: column;
@@ -914,6 +1014,7 @@ onUnload(() => {
 		}
 	}
 	
+	/* ==================== 列表容器样式 ==================== */
 	.list-container {
 		padding: 20rpx 30rpx;
 		
