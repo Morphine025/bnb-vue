@@ -65,7 +65,7 @@
 	 */
 
 	// 导入Vue响应式API
-	import { ref, reactive, onMounted } from 'vue'
+	import { ref } from 'vue'
 	
 	// 导入uni-app生命周期钩子
 	import { onLoad, onShow, onPullDownRefresh } from '@dcloudio/uni-app'
@@ -76,13 +76,46 @@
 	// 导入价格格式化工具
 	import { formatPrice } from '@/utils'
 
-	// 响应式数据
+	// ==================== 响应式数据 ====================
+	/** @type {import('vue').Ref<Array>} 浏览历史列表数据 */
 	const historyList = ref([])
+	
+	/** @type {import('vue').Ref<boolean>} 加载状态 */
 	const loading = ref(false)
+	
+	/** @type {import('vue').Ref<number>} 当前页码 */
 	const page = ref(1)
+	
+	/** @type {import('vue').Ref<number>} 每页数据量 */
 	const pageSize = ref(10)
-	const hasMore = ref(true)
 
+	// ==================== 工具函数 ====================
+	/**
+	 * 统一的错误处理函数
+	 * @param {Error} error - 错误对象
+	 * @param {string} defaultMessage - 默认错误消息
+	 * @param {string} operation - 操作名称
+	 */
+	const handleError = (error, defaultMessage = '操作失败', operation = '') => {
+		console.error(`❌ ${operation}失败:`, error)
+		uni.showToast({
+			title: error.message || defaultMessage,
+			icon: 'none'
+		})
+	}
+
+	/**
+	 * 显示成功提示
+	 * @param {string} message - 成功消息
+	 */
+	const showSuccess = (message) => {
+		uni.showToast({
+			title: message,
+			icon: 'success'
+		})
+	}
+
+	// ==================== 生命周期钩子 ====================
 	/**
 	 * 页面加载时获取浏览历史
 	 */
@@ -112,40 +145,44 @@
 	})
 
 	/**
-	 * 加载浏览历史
+	 * 加载浏览历史数据
+	 * @description 从服务器获取用户的浏览历史记录，支持分页加载
+	 * @param {boolean} isRefresh - 是否为刷新操作，默认false
 	 */
-	const loadViewHistory = async () => {
+	const loadViewHistory = async (isRefresh = false) => {
 		try {
 			loading.value = true
+			
+			// 如果是刷新操作，重置页码
+			if (isRefresh) {
+				page.value = 1
+			}
+			
+			console.log(`📱 加载浏览历史 - 页码: ${page.value}, 每页: ${pageSize.value}`)
+			
 			const res = await API.user.getViewHistory({
 				page: page.value,
 				size: pageSize.value
 			})
 			
+			// 验证API响应格式
 			if (res.code === 1 && res.data) {
+				const newList = res.data.list || []
+				
+				// 根据页码决定是替换还是追加数据
 				if (page.value === 1) {
-					historyList.value = res.data.list || []
+					historyList.value = newList
 				} else {
-					historyList.value.push(...(res.data.list || []))
+					historyList.value.push(...newList)
 				}
 				
-				// 检查是否还有更多数据
-				hasMore.value = (res.data.list || []).length === pageSize.value
-				
-				console.log('✅ 浏览历史加载成功:', historyList.value.length, '条')
+				console.log('✅ 浏览历史加载成功:', historyList.value.length, '条记录')
 			} else {
 				console.warn('⚠️ 浏览历史数据格式异常:', res)
-				uni.showToast({
-					title: '加载失败',
-					icon: 'none'
-				})
+				handleError(new Error('数据格式异常'), '加载失败，请重试', '加载浏览历史')
 			}
 		} catch (error) {
-			console.error('❌ 加载浏览历史失败:', error)
-			uni.showToast({
-				title: '加载失败，请重试',
-				icon: 'none'
-			})
+			handleError(error, '加载失败，请重试', '加载浏览历史')
 		} finally {
 			loading.value = false
 		}
@@ -153,75 +190,73 @@
 
 	/**
 	 * 切换收藏状态
+	 * @description 在浏览历史页面中切换民宿的收藏状态
+	 * @param {Object} item - 民宿数据对象
+	 * @param {string} item.homestayId - 民宿ID
+	 * @param {boolean} item.isCollected - 当前收藏状态
+	 * @param {number} index - 在列表中的索引位置
 	 */
 	const toggleCollectAction = async (item, index) => {
 		try {
 			const action = item.isCollected ? 'uncollect' : 'collect'
+			console.log(`📱 切换收藏状态 - 民宿ID: ${item.homestayId}, 操作: ${action}`)
+			
 			const result = await API.homestay.toggleCollect(item.homestayId, action)
 			
 			if (result.code === 1) {
 				// 更新本地状态
 				historyList.value[index].isCollected = !item.isCollected
 				
-				uni.showToast({
-					title: item.isCollected ? '收藏成功' : '已取消收藏',
-					icon: 'success'
-				})
+				const message = item.isCollected ? '已取消收藏' : '收藏成功'
+				showSuccess(message)
+				
+				console.log('✅ 收藏状态切换成功')
 			} else {
-				uni.showToast({
-					title: '操作失败',
-					icon: 'none'
-				})
+				throw new Error(result.message || '操作失败')
 			}
 		} catch (error) {
-			console.error('❌ 收藏操作失败:', error)
-			uni.showToast({
-				title: '操作失败',
-				icon: 'none'
-			})
+			handleError(error, '操作失败，请重试', '切换收藏状态')
 		}
 	}
 
 	/**
-	 * 删除浏览历史
+	 * 删除单条浏览历史记录
+	 * @description 删除用户指定的浏览历史记录，需要用户确认
+	 * @param {Object} item - 民宿数据对象
+	 * @param {string} item.homestayId - 民宿ID
+	 * @param {string} item.title - 民宿标题
+	 * @param {number} index - 在列表中的索引位置
 	 */
 	const removeHistory = async (item, index) => {
 		try {
 			uni.showModal({
 				title: '确认删除',
-				content: '确定要删除这条浏览记录吗？',
+				content: `确定要删除"${item.title}"的浏览记录吗？`,
 				success: async (res) => {
 					if (res.confirm) {
+						console.log(`📱 删除浏览历史 - 民宿ID: ${item.homestayId}`)
+						
 						const result = await API.user.removeViewHistory(item.homestayId)
 						
 						if (result.code === 1) {
 							// 从列表中移除
 							historyList.value.splice(index, 1)
-							
-							uni.showToast({
-								title: '删除成功',
-								icon: 'success'
-							})
+							showSuccess('删除成功')
+							console.log('✅ 浏览历史删除成功')
 						} else {
-							uni.showToast({
-								title: '删除失败',
-								icon: 'none'
-							})
+							throw new Error(result.message || '删除失败')
 						}
 					}
 				}
 			})
 		} catch (error) {
-			console.error('删除浏览历史失败:', error)
-			uni.showToast({
-				title: '删除失败，请重试',
-				icon: 'none'
-			})
+			handleError(error, '删除失败，请重试', '删除浏览历史')
 		}
 	}
 
 	/**
-	 * 清除所有浏览历史
+	 * 清除所有浏览历史记录
+	 * @description 清空用户的所有浏览历史记录，需要用户确认，操作不可恢复
 	 */
 	const clearAllHistory = () => {
 		uni.showModal({
@@ -230,39 +265,38 @@
 			success: async (res) => {
 				if (res.confirm) {
 					try {
+						console.log('📱 清除所有浏览历史')
+						
 						const result = await API.user.clearViewHistory()
 						
 						if (result.code === 1) {
 							historyList.value = []
-							
-							uni.showToast({
-								title: '清除成功',
-								icon: 'success'
-							})
+							showSuccess('清除成功')
+							console.log('✅ 所有浏览历史清除成功')
 						} else {
-							uni.showToast({
-								title: '清除失败',
-								icon: 'none'
-							})
+							throw new Error(result.message || '清除失败')
 						}
 					} catch (error) {
-						console.error('清除浏览历史失败:', error)
-						uni.showToast({
-							title: '清除失败，请重试',
-							icon: 'none'
-						})
+						handleError(error, '清除失败，请重试', '清除所有浏览历史')
 					}
 				}
 			}
 		})
 	}
 
+	// ==================== 工具函数 ====================
 	/**
-	 * 获取位置文本
+	 * 获取位置显示文本
+	 * @description 根据民宿数据生成位置显示文本，优先级：省+市 > 位置字段 > 默认文本
+	 * @param {Object} item - 民宿数据对象
+	 * @param {string} [item.province] - 省份
+	 * @param {string} [item.city] - 城市
+	 * @param {string} [item.location] - 位置信息
+	 * @returns {string} 格式化的位置文本
 	 */
 	const getLocationText = (item) => {
 		if (item.province && item.city) {
-			return `${item.province} ${item.city}`
+			return `${item.province}${item.city}`
 		} else if (item.location) {
 			return item.location
 		} else {
@@ -271,7 +305,12 @@
 	}
 
 	/**
-	 * 格式化时间
+	 * 格式化时间显示
+	 * @description 将时间字符串转换为相对时间显示，支持iOS兼容性处理
+	 * @param {string} timeStr - 时间字符串，格式如 "yyyy-MM-dd HH:mm:ss"
+	 * @returns {string} 格式化后的时间显示文本
+	 * @example
+	 * formatTime('2024-01-15 14:30:00') // 返回 "2小时前" 或 "刚刚" 等
 	 */
 	const formatTime = (timeStr) => {
 		if (!timeStr) return ''
@@ -279,7 +318,7 @@
 		// 修复iOS日期格式兼容性问题
 		let time
 		try {
-			// 将 "yyyy-MM-dd HH:mm:ss" 格式转换为 iOS 兼容的格式
+			// 将 "yyyy-MM-dd HH:mm:ss" 格式转换为 iOS 兼容的 ISO 格式
 			const isoStr = timeStr.replace(' ', 'T')
 			time = new Date(isoStr)
 		} catch (error) {
@@ -317,10 +356,15 @@
 		}
 	}
 
+	// ==================== 导航方法 ====================
 	/**
-	 * 跳转到详情页
+	 * 跳转到民宿详情页
+	 * @description 点击浏览历史项时跳转到对应的民宿详情页
+	 * @param {Object} item - 民宿数据对象
+	 * @param {string} item.homestayId - 民宿ID
 	 */
 	const goToDetail = (item) => {
+		console.log(`📱 跳转民宿详情页 - ID: ${item.homestayId}`)
 		uni.navigateTo({
 			url: `/pages/detail/detail?id=${item.homestayId}`
 		})
@@ -328,8 +372,10 @@
 
 	/**
 	 * 跳转到首页
+	 * @description 从空状态页面跳转到首页浏览更多民宿
 	 */
 	const goToHome = () => {
+		console.log('📱 跳转首页')
 		uni.switchTab({
 			url: '/pages/index/index'
 		})
@@ -337,10 +383,12 @@
 </script>
 
 <style lang="scss" scoped>
+	/* ==================== 页面容器样式 ==================== */
 	.container {
 		min-height: 100vh;
 		position: relative;
 		
+		/* 背景渐变装饰 */
 		&::before {
 			content: '';
 			position: fixed;
@@ -354,12 +402,14 @@
 		}
 	}
 
+	/* ==================== 浏览历史列表样式 ==================== */
 	.history-list {
 		padding: 30rpx 20rpx 120rpx 20rpx; /* 底部增加间距，为固定按钮留出空间 */
 		max-width: 750rpx;
 		margin: 0 auto;
 	}
 
+	/* ==================== 历史记录项样式 ==================== */
 	.history-item {
 		background: #fff;
 		border-radius: 20rpx;
@@ -615,6 +665,7 @@
 		}
 	}
 
+	/* ==================== 空状态样式 ==================== */
 	.empty-state {
 		display: flex;
 		flex-direction: column;
@@ -667,6 +718,7 @@
 		}
 	}
 	
+	/* ==================== 加载状态样式 ==================== */
 	.loading-state {
 		display: flex;
 		flex-direction: column;
@@ -687,6 +739,7 @@
 		}
 	}
 	
+	/* ==================== 固定清除按钮样式 ==================== */
 	.clear-history-fixed {
 		position: fixed;
 		bottom: 0;
