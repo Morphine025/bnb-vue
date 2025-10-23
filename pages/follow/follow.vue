@@ -50,20 +50,14 @@
 	import {
 		onLoad,
 		onShow,
-		onReachBottom,
 		onPullDownRefresh
 	} from '@dcloudio/uni-app'
 	
 	// 导入Vue响应式API
 	import {
 		ref,
-		reactive,
-		computed,
 		nextTick
 	} from 'vue'
-	
-	// 导入价格格式化工具
-	import { formatPrice } from '@/utils'
 	
 	// 导入回到顶部组件
 	import ToTop from '../../components/ToTop.vue'
@@ -71,14 +65,64 @@
 	// 导入HomestayList组件
 	import HomestayList from '../../components/HomestayList/index.vue'
 
-	// 响应式数据定义
-	const followList = ref([]) // 关注用户发布信息列表
-	const uWaterfallRef = ref(null) // 瀑布流组件引用
-	const isSingleColumn = ref(false) // 是否为单列布局
-	// 回到顶部功能已移至ToTop组件
-	const toTopRef = ref(null)  // ToTop组件引用
+	// ==================== 响应式数据定义 ====================
 	
-	// 从本地存储读取布局偏好
+	/**
+	 * 关注用户发布的民宿列表数据
+	 * @type {Array} 包含民宿信息的数组
+	 */
+	const followList = ref([])
+	
+	/**
+	 * 是否为单列布局模式
+	 * @type {boolean} true-单列布局，false-双列瀑布流布局
+	 */
+	const isSingleColumn = ref(false)
+	
+	/**
+	 * 回到顶部组件引用
+	 * @type {Object} ToTop组件的引用，用于控制回到顶部功能
+	 */
+	const toTopRef = ref(null)
+	
+	// ==================== 分页和状态管理 ====================
+	
+	/**
+	 * 当前页码
+	 * @type {number} 从1开始的页码
+	 */
+	const currentPage = ref(1)
+	
+	/**
+	 * 每页数据数量
+	 * @type {number} 每页加载的民宿数量
+	 */
+	const pageSize = ref(10)
+	
+	/**
+	 * 是否还有更多数据可加载
+	 * @type {boolean} true-有更多数据，false-已加载完所有数据
+	 */
+	const hasMore = ref(true)
+	
+	/**
+	 * 是否正在加载数据
+	 * @type {boolean} true-正在加载，false-加载完成
+	 */
+	const isLoading = ref(false)
+	
+	/**
+	 * 当前排序类型
+	 * @type {string} 排序方式：'综合排序'、'价格从低到高'、'价格从高到低'、'最新发布'
+	 */
+	const currentSortType = ref('综合排序')
+	
+	// ==================== 布局偏好管理 ====================
+	
+	/**
+	 * 从本地存储读取用户布局偏好设置
+	 * 读取用户之前保存的布局模式（单列/双列）
+	 */
 	const loadLayoutPreference = () => {
 		try {
 			const savedLayout = uni.getStorageSync('layoutPreference')
@@ -90,7 +134,10 @@
 		}
 	}
 	
-	// 保存布局偏好到本地存储
+	/**
+	 * 保存用户布局偏好到本地存储
+	 * @param {boolean} isSingle - 是否为单列布局
+	 */
 	const saveLayoutPreference = (isSingle) => {
 		try {
 			uni.setStorageSync('layoutPreference', isSingle ? 'single' : 'double')
@@ -98,18 +145,13 @@
 			console.error('保存布局偏好失败:', error)
 		}
 	}
-	
-	// 分页状态管理
-	const currentPage = ref(1) // 当前页码
-	const pageSize = ref(10) // 每页数量
-	const hasMore = ref(true) // 是否还有更多数据
-	const isLoading = ref(false) // 是否正在加载
-	
-	// 排序状态管理
-	const currentSortType = ref('综合排序') // 当前排序类型
 
+	// ==================== 用户认证管理 ====================
+	
 	/**
-	 * 检查登录状态
+	 * 检查用户登录状态
+	 * @returns {boolean} true-已登录，false-未登录
+	 * @description 检查本地存储中的token，如果未登录则提示用户去登录页面
 	 */
 	const checkLoginStatus = () => {
 		const token = uni.getStorageSync('token')
@@ -197,8 +239,36 @@
 		}
 	})
 	
+	// ==================== 数据处理工具函数 ====================
+	
 	/**
-	 * 加载关注数据
+	 * 处理民宿数据，统一数据格式
+	 * @param {Array} rawData - 原始民宿数据数组
+	 * @returns {Array} 处理后的标准化民宿数据数组
+	 * @description 将后端返回的民宿数据转换为前端组件需要的统一格式
+	 */
+	const processHomestayData = (rawData) => {
+		return rawData.map(item => ({
+			id: item.homestayId || item.id,
+			title: item.title || '暂无标题',
+			introduce: item.introduce || item.description || '',
+			price: item.price || 0,
+			img: (item.images && item.images.length > 0) ? item.images[0] : '/static/logo.png',
+			location: item.location || '未知位置',
+			likes: item.likeCount || item.likes || 0,
+			supports: item.collectCount || item.supports || 0,
+			viewCount: item.viewCount || item.views || 0,
+			author: item.author || item.authorName || '未知用户',
+			avatar: item.avatar || item.authorAvatar || '/static/logo.png',
+			createTime: item.createTime || item.publishTime || ''
+		}))
+	}
+	
+	// ==================== 数据加载管理 ====================
+	
+	/**
+	 * 加载关注用户的民宿数据
+	 * @description 获取当前用户关注的用户发布的民宿信息，支持分页加载
 	 */
 	const loadFollowData = async () => {
 		try {
@@ -209,7 +279,7 @@
 			hasMore.value = true
 			followList.value = []
 			
-			// 使用新的关注用户民宿接口
+			// 调用API获取关注用户的民宿数据
 			const homestayResult = await API.user.getFollowHomestayList({ 
 				page: currentPage.value, 
 				size: pageSize.value
@@ -224,20 +294,7 @@
 				console.log('✅ 关注用户民宿数据获取成功，民宿数量:', homestayList.length)
 				
 				// 处理民宿数据，确保数据完整性
-				const processedData = homestayList.map(item => ({
-					id: item.homestayId || item.id,
-					title: item.title || '暂无标题',
-					introduce: item.introduce || item.description || '',
-					price: item.price || 0,
-					img: (item.images && item.images.length > 0) ? item.images[0] : '/static/logo.png',
-					location: item.location || '未知位置',
-					likes: item.likeCount || item.likes || 0,
-					supports: item.collectCount || item.supports || 0,
-					viewCount: item.viewCount || item.views || 0,
-					author: item.author || item.authorName || '未知用户',
-					avatar: item.avatar || item.authorAvatar || '/static/logo.png',
-					createTime: item.createTime || item.publishTime || ''
-				}))
+				const processedData = processHomestayData(homestayList)
 				
 				followList.value = processedData
 				hasMore.value = processedData.length >= pageSize.value
@@ -260,9 +317,11 @@
 	}
 	
 	/**
-	 * 加载更多数据
+	 * 加载更多关注数据
+	 * @description 分页加载更多关注用户的民宿数据，支持无限滚动
 	 */
 	const loadMore = async () => {
+		// 防止重复加载
 		if (!hasMore.value || isLoading.value) {
 			return
 		}
@@ -273,7 +332,7 @@
 			
 			console.log('🔄 加载更多关注数据，页码:', currentPage.value)
 			
-			// 使用新的关注用户民宿接口
+			// 调用API获取下一页数据
 			const homestayResult = await API.user.getFollowHomestayList({ 
 				page: currentPage.value, 
 				size: pageSize.value
@@ -284,22 +343,10 @@
 				const homestayList = homestayData.list || []
 				
 				if (homestayList.length > 0) {
-					// 处理民宿数据，确保数据完整性
-					const processedData = homestayList.map(item => ({
-						id: item.homestayId || item.id,
-						title: item.title || '暂无标题',
-						introduce: item.introduce || item.description || '',
-						price: item.price || 0,
-						img: (item.images && item.images.length > 0) ? item.images[0] : '/static/logo.png',
-						location: item.location || '未知位置',
-						likes: item.likeCount || item.likes || 0,
-						supports: item.collectCount || item.supports || 0,
-						viewCount: item.viewCount || item.views || 0,
-						author: item.author || item.authorName || '未知用户',
-						avatar: item.avatar || item.authorAvatar || '/static/logo.png',
-						createTime: item.createTime || item.publishTime || ''
-					}))
+					// 使用统一的数据处理函数
+					const processedData = processHomestayData(homestayList)
 					
+					// 追加到现有数据
 					followList.value = [...followList.value, ...processedData]
 					console.log('✅ 更多关注民宿数据加载成功，新增:', processedData.length, '总数据量:', followList.value.length)
 				} else {
@@ -324,8 +371,11 @@
 		}
 	}
 	
+	// ==================== 用户交互管理 ====================
+	
 	/**
-	 * 切换布局
+	 * 切换布局模式
+	 * @description 在单列和双列布局之间切换，并保存用户偏好
 	 */
 	const toggleLayout = () => {
 		isSingleColumn.value = !isSingleColumn.value
@@ -338,13 +388,15 @@
 	}
 	
 	/**
-	 * 显示排序选项
+	 * 显示排序选项弹窗
+	 * @description 显示排序选项列表，让用户选择排序方式
 	 */
 	const showSortOptions = () => {
+		const sortOptions = ['综合排序', '价格从低到高', '价格从高到低', '最新发布']
+		
 		uni.showActionSheet({
-			itemList: ['综合排序', '价格从低到高', '价格从高到低', '最新发布'],
+			itemList: sortOptions,
 			success: (res) => {
-				const sortOptions = ['综合排序', '价格从低到高', '价格从高到低', '最新发布']
 				const selectedSort = sortOptions[res.tapIndex]
 				
 				if (selectedSort !== currentSortType.value) {
@@ -362,7 +414,8 @@
 	}
 	
 	/**
-	 * 应用排序
+	 * 应用排序规则
+	 * @description 根据用户选择的排序方式对民宿列表进行排序
 	 */
 	const applySorting = () => {
 		if (!followList.value || followList.value.length === 0) {
@@ -373,12 +426,15 @@
 		
 		switch (currentSortType.value) {
 			case '价格从低到高':
+				// 按价格升序排序
 				sortedList.sort((a, b) => (a.price || 0) - (b.price || 0))
 				break
 			case '价格从高到低':
+				// 按价格降序排序
 				sortedList.sort((a, b) => (b.price || 0) - (a.price || 0))
 				break
 			case '最新发布':
+				// 按发布时间降序排序
 				sortedList.sort((a, b) => {
 					const timeA = new Date(a.createTime || 0).getTime()
 					const timeB = new Date(b.createTime || 0).getTime()
@@ -400,8 +456,12 @@
 		console.log('🔄 已应用排序:', currentSortType.value)
 	}
 	
+	// ==================== 页面导航管理 ====================
+	
 	/**
-	 * 跳转到详情页
+	 * 跳转到民宿详情页
+	 * @param {Object} item - 民宿数据对象
+	 * @description 点击民宿卡片时跳转到详情页，传递民宿数据
 	 */
 	const goDetail = (item) => {
 		try {
@@ -434,18 +494,27 @@
 		}
 	}
 	
+	// ==================== 错误处理管理 ====================
+	
 	/**
 	 * 处理图片加载错误
+	 * @param {Event} event - 图片加载错误事件
+	 * @param {Object} item - 民宿数据对象
+	 * @param {number} index - 图片在列表中的索引
+	 * @description 当图片加载失败时，设置默认图片
 	 */
 	const handleImageError = (event, item, index) => {
 		console.warn('⚠️ 图片加载失败:', item.img, '索引:', index)
-		// 可以设置默认图片
+		// 设置默认图片
 		event.target.src = '/static/logo.png'
 	}
 	
-	// 回到顶部功能已移至ToTop组件
+	// ==================== 滚动监听管理 ====================
+	
 	/**
 	 * scroll-view滚动监听
+	 * @param {Event} e - 滚动事件对象
+	 * @description 监听滚动事件，传递给ToTop组件处理回到顶部功能
 	 */
 	const onScrollViewScroll = (e) => {
 		if (toTopRef.value && toTopRef.value.onScrollViewScroll) {
@@ -525,356 +594,5 @@
 		box-sizing: border-box;
 	}
 
-	/* 瀑布流卡片样式 */
-	.post-card {
-		background: #fff;
-		border-radius: 16rpx;
-		overflow: hidden;
-		margin-bottom: 20rpx;
-		box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
-		transition: all 0.3s ease;
-	}
-
-	.post-card:active {
-		transform: scale(0.98);
-		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.12);
-	}
-
-	.post-image {
-		position: relative;
-		width: 100%;
-		overflow: hidden;
-	}
-
-	.post-img {
-		width: 100%;
-		display: block;
-	}
-
-	.location-overlay {
-		position: absolute;
-		bottom: 12rpx;
-		left: 12rpx;
-		background: rgba(0, 0, 0, 0.6);
-		color: #fff;
-		padding: 6rpx 12rpx;
-		border-radius: 20rpx;
-		font-size: 22rpx;
-		display: flex;
-		align-items: center;
-		gap: 6rpx;
-	}
-
-	.location-text {
-		font-size: 22rpx;
-		color: #fff;
-	}
-
-	.post-content {
-		padding: 24rpx;
-	}
-
-	.post-title {
-		font-size: 28rpx;
-		font-weight: 600;
-		color: #333;
-		line-height: 1.4;
-		margin-bottom: 12rpx;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.post-summary {
-		font-size: 24rpx;
-		color: #666;
-		line-height: 1.5;
-		margin-bottom: 16rpx;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-	}
-
-	.post-info {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 16rpx;
-	}
-
-	.price-tag {
-		display: flex;
-		align-items: baseline;
-		color: #ff4757;
-		font-weight: 600;
-	}
-
-	.price-symbol {
-		font-size: 24rpx;
-		margin-right: 4rpx;
-	}
-
-	.price-number {
-		font-size: 32rpx;
-		font-weight: 700;
-	}
-
-	.interaction-stats {
-		display: flex;
-		gap: 16rpx;
-	}
-
-	.stat-item {
-		display: flex;
-		align-items: center;
-		gap: 6rpx;
-	}
-
-	.stat-count {
-		font-size: 22rpx;
-		color: #666;
-	}
-
-	.post-footer {
-		border-top: 1rpx solid #f0f0f0;
-		padding-top: 16rpx;
-	}
-
-	.user-info {
-		display: flex;
-		align-items: center;
-		gap: 12rpx;
-	}
-
-	.avatar {
-		width: 48rpx;
-		height: 48rpx;
-		border-radius: 50%;
-		overflow: hidden;
-	}
-
-	.avatar image {
-		width: 100%;
-		height: 100%;
-	}
-
-	.user-details {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 4rpx;
-	}
-
-	.username {
-		font-size: 24rpx;
-		color: #333;
-		font-weight: 500;
-	}
-
-	.user-title {
-		font-size: 20rpx;
-		color: #667eea;
-		background: rgba(102, 126, 234, 0.1);
-		padding: 2rpx 8rpx;
-		border-radius: 10rpx;
-		width: fit-content;
-	}
-
-	/* 单列布局样式 */
-	.single-column-list {
-		padding: 20rpx;
-		width: 100%;
-		box-sizing: border-box;
-	}
-
-	.single-card {
-		background: #fff;
-		border-radius: 20rpx;
-		margin-bottom: 20rpx;
-		overflow: hidden;
-		box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
-		transition: all 0.3s ease;
-		width: 100%;
-		box-sizing: border-box;
-	}
-
-	.single-card:active {
-		transform: scale(0.98);
-		box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.12);
-	}
-
-	.single-top {
-		display: flex;
-		width: 100%;
-		box-sizing: border-box;
-	}
-
-	.single-image {
-		width: 300rpx;
-		min-height: 200rpx;
-		border-radius: 12rpx;
-		overflow: hidden;
-		position: relative;
-		flex-shrink: 0;
-		display: flex;
-		align-items: stretch;
-	}
-
-	.single-img {
-		width: 100%;
-		height: 100%;
-	}
-
-	.single-content {
-		flex: 1;
-		padding: 20rpx;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		min-width: 0; /* 防止flex子元素溢出 */
-		overflow: hidden;
-	}
-
-	.single-title {
-		font-size: 32rpx;
-		font-weight: 600;
-		color: #333;
-		line-height: 1.4;
-		margin-bottom: 8rpx;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-		word-break: break-word;
-		width: 100%;
-	}
-
-	.single-details {
-		font-size: 24rpx;
-		color: #666;
-		line-height: 1.5;
-		margin-bottom: 16rpx;
-		display: -webkit-box;
-		-webkit-line-clamp: 2;
-		-webkit-box-orient: vertical;
-		overflow: hidden;
-		word-break: break-word;
-		width: 100%;
-	}
-
-	.single-actions {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-top: auto;
-		width: 100%;
-		box-sizing: border-box;
-	}
-
-	.action-item {
-		display: flex;
-		align-items: center;
-		gap: 6rpx;
-		flex-shrink: 0;
-	}
-
-	.price-value {
-		font-size: 28rpx;
-		font-weight: 700;
-		color: #ff4757;
-	}
-
-	.action-value {
-		font-size: 22rpx;
-		color: #666;
-	}
-
-	.single-footer {
-		display: flex;
-		align-items: center;
-		padding: 20rpx;
-		border-top: 1rpx solid #f5f5f5;
-		background-color: #fafafa;
-		width: 100%;
-		box-sizing: border-box;
-	}
-
-	.single-avatar {
-		width: 40rpx;
-		height: 40rpx;
-		border-radius: 50%;
-		overflow: hidden;
-		margin-right: 12rpx;
-	}
-
-	.single-avatar image {
-		width: 100%;
-		height: 100%;
-	}
-
-	.single-username {
-		flex: 1;
-		font-size: 24rpx;
-		color: #333;
-		font-weight: 500;
-	}
-
-	.single-views {
-		display: flex;
-		align-items: center;
-		gap: 6rpx;
-	}
-
-	.views-text {
-		font-size: 22rpx;
-		color: #999;
-	}
-
-	/* 空状态样式 */
-	.empty-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 120rpx 40rpx;
-		text-align: center;
-	}
-
-	.empty-icon {
-		font-size: 120rpx;
-		margin-bottom: 30rpx;
-		opacity: 0.6;
-	}
-
-	.empty-title {
-		font-size: 32rpx;
-		font-weight: 600;
-		color: #333;
-		margin-bottom: 16rpx;
-	}
-
-	.empty-desc {
-		font-size: 26rpx;
-		color: #666;
-		line-height: 1.5;
-	}
-
-	/* 加载状态样式 */
-	.loading-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 60rpx 40rpx;
-		gap: 20rpx;
-	}
-
-	.loading-text {
-		font-size: 26rpx;
-		color: #666;
-	}
-
-	/* 回到顶部按钮样式已移至ToTop组件 */
+	/* 注意：具体的卡片样式已移至HomestayList组件中，这里只保留页面级别的样式 */
 </style>
