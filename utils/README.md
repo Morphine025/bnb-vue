@@ -2,7 +2,7 @@
 
 ## 概述
 
-本项目在 `utils/` 目录下提供了精简高效的工具函数，涵盖了API处理、缓存管理、数据验证、性能监控等核心功能。经过全面优化，已消除重复代码，简化架构设计，提升维护效率。所有工具函数都经过简化设计，避免过度复杂，提供简洁的接口和良好的性能表现。
+本项目在 `utils/` 目录下提供了精简高效的工具函数，涵盖了API处理、缓存管理、数据验证、性能监控、安全防护等核心功能。经过全面优化，已消除重复代码，简化架构设计，提升维护效率。所有工具函数都经过简化设计，避免过度复杂，提供简洁的接口和良好的性能表现。工具函数按功能模块化组织，支持按需导入，便于维护和扩展。
 
 ## 重构说明
 
@@ -17,7 +17,10 @@
 ```
 utils/
 ├── security/                # 安全相关工具
-│   └── dataValidator.js    # 统一数据验证和输入清理工具
+│   ├── dataValidator.js    # 统一数据验证和输入清理工具
+│   ├── urlConverter.js     # URL转换工具
+│   ├── environmentDetector.js # 环境检测工具
+│   └── developmentHelper.js # 开发辅助工具
 ├── performance/             # 性能相关工具
 │   ├── performanceMonitor.js # 性能监控工具
 │   ├── debounce.js         # 防抖节流工具
@@ -28,17 +31,24 @@ utils/
 │   └── cacheManager.js     # 轻量级缓存管理器
 ├── ui/                     # UI相关工具
 │   ├── loadingManager.js   # Loading状态管理
-│   └── shareUtils.js       # 分享工具
+│   ├── shareUtils.js       # 分享工具
+│   └── imageErrorHandler.js # 图片错误处理
 ├── business/               # 业务相关工具
 │   ├── homestayStatus.js   # 民宿状态管理
 │   ├── priceFormatter.js   # 价格格式化工具
 │   └── userInfo.js         # 用户信息管理
 ├── debug/                  # 调试相关工具
 │   └── debugHelper.js      # 调试辅助工具
+├── error/                  # 错误处理工具
+│   ├── errorHandler.js     # 错误处理器
+│   ├── errorLogger.js      # 错误日志
+│   ├── errorMessages.js    # 错误消息
+│   ├── errorTypes.js       # 错误类型
+│   └── errorUtils.js       # 错误工具
 ├── constants/              # 常量定义
-│   └── constants.js        # 应用常量定义
-├── index.js               # 统一入口文件
-└── README.md              # 本文档
+│   └── constants.js         # 应用常量定义
+├── index.js                # 统一入口文件
+└── README.md               # 本文档
 ```
 
 ## 工具函数分类
@@ -305,11 +315,20 @@ import { performanceUtils, cacheUtils, validationUtils } from '@/utils'
 - 对所有用户输入进行清理和验证
 - 使用 `dataValidator.js` 防止XSS攻击
 - 验证API响应数据格式
+- 使用 `urlConverter.js` 处理URL转换
+- 使用 `environmentDetector.js` 检测运行环境
 
-### 5. 代码组织
+### 5. 错误处理
+- 使用统一的错误处理机制
+- 记录详细的错误日志
+- 提供用户友好的错误消息
+- 区分不同类型的错误
+
+### 6. 代码组织
 - 按功能分类组织工具函数
 - 提供清晰的文档和示例
 - 保持函数职责单一，避免过度设计
+- 支持按需导入，减少打包体积
 
 ## 调试技巧
 

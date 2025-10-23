@@ -2,12 +2,12 @@
 
 ## 项目简介
 
-这是一个基于 UniApp + Vue3 开发的民宿转让微信小程序，支持多端运行（微信小程序、H5、App）。项目采用现代化的前端技术栈，提供完整的民宿信息展示、用户管理、社交互动等功能。
+这是一个基于 UniApp + Vue3 开发的民宿转让微信小程序，支持多端运行（微信小程序、H5、App）。项目采用现代化的前端技术栈，提供完整的民宿信息展示、用户管理、社交互动等功能。经过全面优化，已建立清晰的模块化架构，消除功能重复，提升维护效率。
 
 ## 技术栈
 
 - **前端框架**: Vue 3 + Composition API + `<script setup>`
-- **UI组件库**: uview-plus (viewPlus)
+- **UI组件库**: uview-plus (viewPlus) + uni-app原生组件
 - **开发语言**: JavaScript (ES6+)
 - **状态管理**: Pinia (模块化Store)
 - **路由管理**: 原生页面路由 (uniapp规范)
@@ -22,11 +22,11 @@
 uniapp-bnb-test/
 ├── api/                    # API接口模块（已优化）
 │   ├── core/              # 核心API类
-│   │   ├── BaseAPI.js     # API基类（简化版，44行）
+│   │   ├── BaseAPI.js     # API基类（简化版）
 │   │   └── ErrorHandler.js # 错误处理
 │   ├── modules/           # 业务API模块
 │   │   ├── HomestayAPI.js # 民宿相关API
-│   │   ├── UserAPI.js     # 用户相关API（302行，功能完整）
+│   │   ├── UserAPI.js     # 用户相关API（功能完整）
 │   │   ├── SearchAPI.js   # 搜索相关API
 │   │   ├── RegionAPI.js   # 地区相关API
 │   │   └── ChatAPI.js     # 聊天相关API
@@ -35,7 +35,10 @@ uniapp-bnb-test/
 │   └── index.js           # API统一入口（159行）
 ├── utils/                  # 工具函数目录（已优化）
 │   ├── security/         # 安全相关工具
-│   │   └── dataValidator.js # 统一数据验证和输入清理工具
+│   │   ├── dataValidator.js # 统一数据验证和输入清理工具
+│   │   ├── urlConverter.js # URL转换工具
+│   │   ├── environmentDetector.js # 环境检测工具
+│   │   └── developmentHelper.js # 开发辅助工具
 │   ├── performance/      # 性能相关工具
 │   │   ├── performanceMonitor.js # 简化性能监控工具
 │   │   ├── debounce.js  # 防抖节流工具
@@ -46,13 +49,20 @@ uniapp-bnb-test/
 │   │   └── cacheManager.js # 轻量级缓存管理器
 │   ├── ui/              # UI相关工具
 │   │   ├── loadingManager.js # Loading状态管理
-│   │   └── shareUtils.js # 分享工具
+│   │   ├── shareUtils.js # 分享工具
+│   │   └── imageErrorHandler.js # 图片错误处理
 │   ├── business/        # 业务相关工具
 │   │   ├── homestayStatus.js # 民宿状态管理
 │   │   ├── priceFormatter.js # 价格格式化工具
 │   │   └── userInfo.js  # 用户信息管理
 │   ├── debug/           # 调试相关工具
 │   │   └── debugHelper.js # 调试辅助工具
+│   ├── error/           # 错误处理工具
+│   │   ├── errorHandler.js # 错误处理器
+│   │   ├── errorLogger.js # 错误日志
+│   │   ├── errorMessages.js # 错误消息
+│   │   ├── errorTypes.js # 错误类型
+│   │   └── errorUtils.js # 错误工具
 │   ├── constants/       # 常量定义
 │   │   └── constants.js # 应用常量定义
 │   ├── index.js         # 统一入口文件
@@ -64,7 +74,7 @@ uniapp-bnb-test/
 │   │   ├── loading.js    # 统一Loading状态管理
 │   │   ├── message.js    # 消息模块状态
 │   │   ├── ui.js         # UI模块状态
-│   │   ├── user.js       # 用户模块状态（主模块）
+│   │   ├── user.js      # 用户模块状态（主模块）
 │   │   ├── homestay.js   # 民宿模块状态（主模块）
 │   │   ├── homestay/     # 民宿子模块
 │   │   │   ├── favorites.js # 收藏状态
@@ -78,14 +88,26 @@ uniapp-bnb-test/
 │   │       ├── history.js    # 搜索历史
 │   │       ├── search.js     # 搜索功能
 │   │       └── suggestions.js # 搜索建议
-│   └── index.js           # Store统一入口
+│   ├── index.js           # Store统一入口
+│   └── README.md          # 状态管理文档
 ├── pages/                 # 页面目录
 │   ├── index/            # 首页（瀑布流展示）
+│   │   └── components/   # 首页组件
+│   │       ├── AddressPicker.vue # 地址选择器
+│   │       ├── BannerCarousel.vue # 轮播图组件
+│   │       └── HeaderSearch.vue # 头部搜索组件
 │   ├── detail/           # 详情页
 │   ├── my/               # 我的页面
+│   │   └── components/   # 我的页面组件
+│   │       ├── LoginPopup.vue # 登录弹窗
+│   │       ├── PageBackground.vue # 页面背景
+│   │       ├── UserInfoCard.vue # 用户信息卡片
+│   │       ├── UserSettingsPopup.vue # 用户设置弹窗
+│   │       ├── UserStatsDisplay.vue # 用户统计显示
+│   │       └── UserToolsMenu.vue # 用户工具菜单
 │   ├── profile/          # 个人信息编辑
 │   ├── publish/          # 发布页面
-│   ├── follow/           # 关注页面
+│   ├── follow/         # 关注页面
 │   ├── follow-list/      # 关注列表
 │   ├── fans-list/        # 粉丝列表
 │   ├── collect/          # 收藏列表
@@ -93,16 +115,37 @@ uniapp-bnb-test/
 │   ├── history/          # 浏览历史
 │   ├── search/           # 搜索页面
 │   ├── chat/             # 聊天页面
-│   └── user-profile/     # 用户资料页
+│   ├── user-profile/     # 用户资料页
+│   ├── my-publish/       # 我的发布
+│   └── publish-detail/   # 发布详情
+├── components/            # 公共组件
+│   ├── HomestayList/     # 民宿列表组件
+│   │   ├── HomestayCard.vue # 民宿卡片
+│   │   └── index.vue     # 民宿列表
+│   └── ToTop.vue         # 回到顶部组件
 ├── static/               # 静态资源
+│   ├── tabBar/           # 底部导航图标
+│   └── *.jpg, *.png     # 图片资源
 ├── uni_modules/          # uni-app模块
+│   ├── uni-badge/        # 徽章组件
+│   ├── uni-icons/        # 图标组件
+│   ├── uni-list/         # 列表组件
+│   ├── uni-scss/         # 样式组件
+│   └── uview-plus/       # UI组件库
+├── config/               # 配置文件
+│   └── errorConfig.js    # 错误配置
 ├── App.vue               # 应用根组件
 ├── main.js               # 应用入口
 ├── manifest.json         # 应用配置
 ├── pages.json            # 页面配置
 ├── package.json          # 依赖配置
-├── 项目评估报告.md        # 项目评估报告
-└── 代码质量与结构优化方案.md # 优化方案文档
+├── uni.scss              # 全局样式
+├── vue.config.js         # Vue配置
+├── babel.config.js       # Babel配置
+├── jest.config.js        # 测试配置
+├── index.html            # HTML模板
+├── README.md             # 项目文档
+└── 缓存优化测试报告.md    # 测试报告
 ```
 
 ## 功能特性

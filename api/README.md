@@ -2,7 +2,7 @@
 
 ## 📋 概述
 
-本项目采用统一的API管理架构，提供模块化API调用方式，支持完整的民宿转让业务功能。经过全面优化，已消除功能重复，简化架构设计，提升维护效率。
+本项目采用统一的API管理架构，提供模块化API调用方式，支持完整的民宿转让业务功能。经过全面优化，已消除功能重复，简化架构设计，提升维护效率。所有API接口都经过精心设计，提供完整的JSDoc注释和错误处理机制。
 
 ## 🏗️ 架构设计
 
@@ -375,45 +375,70 @@ const user = await API.user.getInfo()
 ## 🔧 API接口总览
 
 ### 用户相关接口
-- 用户登录：`API.user.login()`
-- 获取用户信息：`API.user.getInfo()`
-- 更新用户信息：`API.user.updateInfo()`
-- 用户统计：`API.user.getStats()`
-- 关注/粉丝管理：`API.user.getFollowList()`, `API.user.getFansList()`
-- 浏览历史：`API.user.getViewHistory()`, `API.user.addViewHistory()`
-- 收藏/喜欢：`API.user.getCollectList()`, `API.user.getLikeList()`
-- 我的发布：`API.user.getMyList()`
-- 用户民宿：`API.user.getUserList()`
+- **用户认证**：`API.user.login()` - 微信登录
+- **用户信息**：`API.user.getInfo()` - 获取当前用户信息
+- **用户详情**：`API.user.getInfoById()` - 根据ID获取用户信息
+- **更新信息**：`API.user.updateInfo()` - 更新用户信息
+- **用户统计**：`API.user.getStats()` - 获取用户统计数据
+- **关注管理**：`API.user.getFollowList()` - 获取关注列表
+- **粉丝管理**：`API.user.getFansList()` - 获取粉丝列表
+- **关注操作**：`API.user.toggleFollow()` - 关注/取消关注
+- **关注状态**：`API.user.checkFollowStatus()` - 检查关注状态
+- **移除粉丝**：`API.user.removeFan()` - 移除粉丝
+- **关注动态**：`API.user.getFollowFeed()` - 获取关注动态
+- **关注民宿**：`API.user.getFollowHomestayList()` - 获取关注的民宿列表
+- **收藏管理**：`API.user.getCollectList()` - 获取收藏列表
+- **喜欢管理**：`API.user.getLikeList()` - 获取喜欢列表
+- **浏览历史**：`API.user.getViewHistory()` - 获取浏览历史
+- **添加历史**：`API.user.addViewHistory()` - 添加浏览历史
+- **删除历史**：`API.user.removeViewHistory()` - 删除浏览历史
+- **清空历史**：`API.user.clearViewHistory()` - 清空浏览历史
+- **房东联系**：`API.user.getLandlordContact()` - 获取房东联系方式
 
 ### 民宿相关接口
-- 轮播图：`API.homestay.getBanner()`
-- 首页列表：`API.homestay.getHomeList()`
-- 民宿详情：`API.homestay.getDetail()`
-- 发布民宿：`API.homestay.publish()`
-- 更新民宿：`API.homestay.update()`
-- 删除民宿：`API.homestay.delete()`
-- 上架/下架：`API.homestay.online()`, `API.homestay.offline()`
-- 点赞/收藏：`API.homestay.toggleLike()`, `API.homestay.toggleCollect()`
-- 搜索民宿：`API.homestay.search()`
+- **轮播图**：`API.homestay.getBanner()` - 获取首页轮播图
+- **首页列表**：`API.homestay.getHomeList()` - 获取首页民宿列表
+- **民宿详情**：`API.homestay.getDetail()` - 获取民宿详情
+- **发布民宿**：`API.homestay.publish()` - 发布新民宿
+- **更新民宿**：`API.homestay.update()` - 更新民宿信息
+- **删除民宿**：`API.homestay.delete()` - 删除民宿
+- **上架民宿**：`API.homestay.online()` - 上架民宿
+- **下架民宿**：`API.homestay.offline()` - 下架民宿
+- **点赞操作**：`API.homestay.toggleLike()` - 点赞/取消点赞
+- **收藏操作**：`API.homestay.toggleCollect()` - 收藏/取消收藏
+- **我的民宿**：`API.homestay.getMyList()` - 获取我的民宿列表
+- **地区筛选**：`API.homestay.filterByRegion()` - 按地区筛选民宿
+- **用户民宿**：`API.homestay.getUserList()` - 获取指定用户的民宿列表
+- **搜索民宿**：`API.homestay.search()` - 搜索民宿
 
 ### 搜索相关接口
-- 搜索建议：`API.search.getSuggestions()`
-- 热门搜索：`API.search.getHotSearches()`
-- 搜索历史：`API.search.getSearchHistory()`
+- **搜索建议**：`API.search.getSuggestions()` - 获取搜索建议
+- **热门搜索**：`API.search.getHotSearches()` - 获取热门搜索
+- **搜索历史**：`API.search.getSearchHistory()` - 获取搜索历史
+- **清空历史**：`API.search.clearSearchHistory()` - 清空搜索历史
+- **地区搜索**：`API.search.searchRegions()` - 搜索地区
+- **地区树形**：`API.search.getRegionTree()` - 获取地区树形结构
 
 ### 地区相关接口
-- 省份列表：`API.region.getProvinces()`
-- 城市列表：`API.region.getCitiesByProvince()`
-- 区县列表：`API.region.getDistrictsByCity()`
-- 标签列表：`API.region.getTagList()`
-- 地区搜索：`API.region.searchRegions()`
-- 地区树形：`API.region.getRegionTree()`
+- **省份列表**：`API.region.getProvinces()` - 获取省份列表
+- **城市列表**：`API.region.getCitiesByProvince()` - 根据省份获取城市列表
+- **区县列表**：`API.region.getDistrictsByCity()` - 根据城市获取区县列表
+- **标签列表**：`API.region.getTagList()` - 获取地区标签列表
+- **地区搜索**：`API.region.searchRegions()` - 搜索地区
+- **地区树形**：`API.region.getRegionTree()` - 获取地区树形结构
 
 ### 聊天相关接口
-- 创建对话：`API.chat.createConversation()`
-- 对话列表：`API.chat.getConversations()`
-- 发送消息：`API.chat.sendMessage()`
-- 消息列表：`API.chat.getMessages()`
-- 标记已读：`API.chat.markMessagesAsRead()`
-- 置顶对话：`API.chat.pinConversation()`
-- 删除对话：`API.chat.deleteConversation()`
+- **创建对话**：`API.chat.createConversation()` - 创建新对话
+- **对话列表**：`API.chat.getConversations()` - 获取对话列表
+- **对话详情**：`API.chat.getConversation()` - 获取对话详情
+- **发送消息**：`API.chat.sendMessage()` - 发送消息
+- **消息列表**：`API.chat.getMessages()` - 获取消息列表
+- **标记已读**：`API.chat.markMessagesAsRead()` - 标记消息为已读
+- **未读数量**：`API.chat.getUnreadMessageCount()` - 获取未读消息数量
+- **置顶对话**：`API.chat.pinConversation()` - 置顶对话
+- **取消置顶**：`API.chat.unpinConversation()` - 取消置顶
+- **删除对话**：`API.chat.deleteConversation()` - 删除对话
+- **自动发送**：`API.chat.autoSendLandlordContact()` - 自动发送房东联系方式
+
+### 图片上传接口
+- **图片上传**：`API.uploadImage()` - 上传图片文件
