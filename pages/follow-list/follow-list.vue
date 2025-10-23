@@ -2,11 +2,11 @@
 	<view class="container">
 		<!-- 使用通用用户列表组件 -->
 		<UserList
-			:list="userListState.state.list"
-			:is-loading="userListState.state.loading"
-			:is-loading-more="userListState.state.loadingMore"
-			:has-error="userListState.state.hasError"
-			:error-message="userListState.state.errorMessage"
+			:list="userListState.list.value"
+			:is-loading="userListState.loading.value"
+			:is-loading-more="userListState.loadingMore.value"
+			:has-error="userListState.hasError.value"
+			:error-message="userListState.errorMessage.value"
 			:show-fans-count="true"
 			:empty-image="'/static/logo.png'"
 			:empty-text="'暂无关注'"

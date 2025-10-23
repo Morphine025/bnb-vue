@@ -39,6 +39,9 @@ export const useUserStore = defineStore('user', () => {
     theme: 'light'
   })
   
+  // 民宿列表数据
+  const homestayList = ref([])
+  
   // 登录状态
   const loginStatus = ref({
     isLoggingIn: false,
@@ -423,14 +426,21 @@ export const useUserStore = defineStore('user', () => {
   // 用户列表缓存管理 - 使用响应式ref确保数据变化能被检测到
   const userListCache = ref({
     followList: [],
-    fansList: []
+    fansList: [],
+    follow: [],
+    fans: []
   })
 
   // 获取缓存的用户列表
   const getUserList = (listType) => {
     const result = userListCache.value[listType] || []
     console.log(`🏪 Store获取用户列表 - 类型: ${listType}, 数据:`, result)
-    return result
+    // 确保返回原始数组，不是响应式对象
+    if (Array.isArray(result)) {
+      // 如果是数组，返回原始数组的副本
+      return [...result]
+    }
+    return []
   }
 
   // 设置用户列表缓存
@@ -442,6 +452,80 @@ export const useUserStore = defineStore('user', () => {
       [listType]: list
     }
     console.log(`🏪 Store设置后的缓存:`, userListCache.value)
+  }
+
+  // 设置民宿列表
+  const setHomestayList = (list) => {
+    console.log(`🏪 Store设置民宿列表:`, list)
+    homestayList.value = list
+  }
+
+  // 追加民宿列表（用于分页加载）
+  const appendHomestayList = (list) => {
+    console.log(`🏪 Store追加民宿列表:`, list)
+    homestayList.value = [...homestayList.value, ...list]
+  }
+
+  // 追加用户列表（用于分页加载）
+  const appendUserList = (listType, list) => {
+    console.log(`🏪 Store追加用户列表 - 类型: ${listType}, 数据:`, list)
+    const currentList = userListCache.value[listType] || []
+    userListCache.value = {
+      ...userListCache.value,
+      [listType]: [...currentList, ...list]
+    }
+  }
+
+  // 从用户列表中移除指定项目
+  const removeUserItem = (listType, userId) => {
+    console.log(`🏪 Store移除用户列表项 - 类型: ${listType}, 用户ID: ${userId}`)
+    const currentList = userListCache.value[listType] || []
+    
+    console.log(`🏪 Store移除前的列表:`, currentList.length, '条记录')
+    console.log(`🏪 Store当前列表数据:`, currentList)
+    
+    const filteredList = currentList.filter(user => {
+      // 根据列表类型使用不同的用户ID字段
+      let userUserId
+      if (listType === 'fans') {
+        // 粉丝列表：使用 fanUserId
+        userUserId = user.fanUserId || user.userId || user.id
+      } else if (listType === 'follow') {
+        // 关注列表：使用 followUserId
+        userUserId = user.followUserId || user.userId || user.id
+      } else {
+        // 其他情况：使用通用字段
+        userUserId = user.userId || user.id
+      }
+      
+      console.log(`🏪 Store比较用户ID:`, {
+        targetUserId: userId,
+        currentUserId: userUserId,
+        userData: user
+      })
+      
+      return userUserId !== userId
+    })
+    
+    userListCache.value = {
+      ...userListCache.value,
+      [listType]: filteredList
+    }
+    
+    console.log(`🏪 Store移除后的列表:`, filteredList.length, '条记录')
+    console.log(`🏪 Store移除后的数据:`, filteredList)
+  }
+
+  // 从民宿列表中移除指定项目
+  const removeHomestayItem = (homestayId) => {
+    console.log(`🏪 Store移除民宿列表项 - 民宿ID: ${homestayId}`)
+    const currentList = homestayList.value || []
+    const filteredList = currentList.filter(homestay => {
+      return homestay.homestayId !== homestayId && homestay.id !== homestayId
+    })
+    
+    homestayList.value = filteredList
+    console.log(`🏪 Store移除后的民宿列表:`, filteredList.length, '条记录')
   }
 
   // 清空用户列表缓存
@@ -459,6 +543,7 @@ export const useUserStore = defineStore('user', () => {
     userStats,
     userSettings,
     loginStatus,
+    homestayList,
     
     // Computed
     isLoggedIn,
@@ -486,6 +571,15 @@ export const useUserStore = defineStore('user', () => {
     // List Cache Methods
     getUserList,
     setUserList,
-    clearUserListCache
+    clearUserListCache,
+    
+    // Homestay List Methods
+    setHomestayList,
+    appendHomestayList,
+    
+    // User List Methods
+    appendUserList,
+    removeUserItem,
+    removeHomestayItem
   }
 })

@@ -1,45 +1,21 @@
 <template>
-	<view class="container">
+	<PageContainer 
+		:enable-pull-refresh="true" 
+		background-type="gradient"
+		@pull-refresh="onPullRefresh"
+	>
 		<!-- 喜欢列表 -->
-		<view class="like-list" v-if="likeList.length > 0">
-			<view class="like-item" v-for="(item, index) in likeList" :key="item.homestayId" @click="goToDetail(item)">
-				<view class="item-image">
-					<image 
-						:src="item.images && item.images.length > 0 ? item.images[0] : '/static/logo.png'" 
-						mode="aspectFill"
-						@error="handleImageError"
-						:lazy-load="true"
-					></image>
-				</view>
-				<view class="item-content">
-					<!-- 标题 -->
-					<view class="item-title">{{ item.title }}</view>
-					
-					<!-- 位置 -->
-					<view class="item-location">
-						<up-icon name="map" size="14" color="#999"></up-icon>
-						<text>{{ item.city }}</text>
-					</view>
-					
-					<!-- 金额 -->
-					<view class="item-price">
-						<text class="price-symbol">¥</text>
-						<text class="price-number">{{ formatPrice(item.price) }}</text>
-					</view>
-					
-					<!-- 按钮 -->
-					<view class="item-actions">
-						<view class="action-btn" @click.stop="removeLike(item, index)">
-							<up-icon name="heart" size="16" color="#fff"></up-icon>
-							<text>取消喜欢</text>
-						</view>
-						<view class="action-btn" @click.stop="shareItem(item)">
-							<up-icon name="share" size="16" color="#fff"></up-icon>
-							<text>分享</text>
-						</view>
-					</view>
-				</view>
-			</view>
+		<view class="like-list" v-if="list.length > 0">
+			<HomestayListItem
+				v-for="(item, index) in list"
+				:key="item.homestayId"
+				:item="item"
+				:button-config="buttonConfig"
+				@item-click="goToDetail"
+				@primary-action="(item) => removeItem(item, index)"
+				@secondary-action="shareItem"
+				@image-error="handleImageError"
+			/>
 		</view>
 		
 		<!-- 空状态 -->
@@ -68,7 +44,7 @@
 			<text class="error-text">{{ errorMessage }}</text>
 			<button class="retry-btn" @click="retryLoad">重试</button>
 		</view>
-	</view>
+	</PageContainer>
 </template>
 
 <script setup>
@@ -78,422 +54,74 @@
 	 * 主要功能：喜欢列表展示、取消喜欢、分享、跳转详情
 	 */
 
-	// 导入Vue响应式API
-	import { ref, reactive, onMounted } from 'vue'
-	
-	// 导入uni-app生命周期钩子
-	import { onLoad, onShow, onPullDownRefresh } from '@dcloudio/uni-app'
-	
-	// 导入API接口 - 使用新的统一API机制
+	// 导入API接口
 	import { API } from '../../api'
-	
-	// 导入价格格式化工具
-	import { formatPrice } from '@/utils'
 	
 	// 导入分享工具
 	import { showShareOptions } from '@/utils'
+	
+	// 导入公共组件
+	import PageContainer from '../../components/Common/PageContainer.vue'
+	import HomestayListItem from '../../components/HomestayList/HomestayListItem.vue'
+	
+	// 导入通用Hook
+	import { useHomestayList } from '../../composables/useHomestayList'
 
-	// 响应式数据
-	const likeList = ref([])
-	const loading = ref(false)
-	const loadingMore = ref(false)
-	const hasError = ref(false)
-	const errorMessage = ref('')
-	const page = ref(1)
-	const pageSize = ref(10)
-	const hasMore = ref(true)
-	const hasLoaded = ref(false) // 添加加载标志
-
-	/**
-	 * 页面加载时获取喜欢列表
-	 */
-	onLoad(() => {
-		console.log('📱 喜欢页面加载')
-		loadLikeList()
-	})
-
-	/**
-	 * 页面显示时刷新数据
-	 */
-	onShow(() => {
-		console.log('📱 喜欢页面显示')
-		// 页面显示时不自动加载数据，避免重复请求
-		// 如需刷新数据，请使用下拉刷新功能
-	})
-
-	/**
-	 * 下拉刷新
-	 */
-	onPullDownRefresh(async () => {
-		console.log('📱 喜欢页面下拉刷新')
-		page.value = 1
-		hasMore.value = true
-		hasLoaded.value = false // 重置加载标志
-		await loadLikeList()
-		uni.stopPullDownRefresh()
-	})
-
-	/**
-	 * 加载喜欢列表
-	 */
-	const loadLikeList = async () => {
-		try {
-			loading.value = true
-			hasError.value = false
-			errorMessage.value = ''
-
-			console.log('📱 开始加载喜欢列表')
-			
-			const response = await API.user.getLikeList({
-				page: page.value,
-				size: pageSize.value
-			})
-
-			if (response && response.code === 1) {
-				if (page.value === 1) {
-					likeList.value = response.data?.list || []
-				} else {
-					likeList.value = [...likeList.value, ...(response.data?.list || [])]
-				}
-				
-				hasMore.value = response.data?.list && response.data.list.length === pageSize.value
-				hasLoaded.value = true // 标记已加载
-				console.log('📱 喜欢列表加载成功:', likeList.value.length)
-			} else {
-				throw new Error(response?.msg || '加载失败')
+	// 使用通用Hook
+	const {
+		list,
+		loading,
+		loadingMore,
+		hasError,
+		errorMessage,
+		buttonConfig,
+		removeItem: removeItemBase,
+		shareItem: shareItemBase,
+		goToDetail,
+		goToHome,
+		retryLoad,
+		handleImageError,
+		onPullRefresh
+	} = useHomestayList({
+		loadListApi: API.user.getLikeList,
+		removeItemApi: API.homestay.toggleLike,
+		cacheKey: 'like_list',
+		cacheTTL: 3 * 60 * 1000, // 3分钟缓存
+		buttonConfig: {
+			primary: {
+				text: '取消喜欢',
+				icon: 'heart',
+				class: 'primary-btn'
+			},
+			secondary: {
+				text: '分享',
+				icon: 'share',
+				class: 'secondary-btn'
 			}
-		} catch (error) {
-			console.error('📱 加载喜欢列表失败:', error)
-			hasError.value = true
-			errorMessage.value = error.message || '加载失败，请重试'
-		} finally {
-			loading.value = false
 		}
-	}
+	})
 
 	/**
-	 * 取消喜欢
+	 * 移除喜欢项
 	 */
-	const removeLike = async (item, index) => {
-		try {
-			console.log('📱 取消喜欢:', item.title)
-			
-			const response = await API.homestay.toggleLike(item.homestayId, 'unlike')
-			
-			if (response && response.code === 1) {
-				likeList.value.splice(index, 1)
-				uni.showToast({
-					title: '已取消喜欢',
-					icon: 'success'
-				})
-			} else {
-				throw new Error(response?.msg || '操作失败')
-			}
-		} catch (error) {
-			console.error('📱 取消喜欢失败:', error)
-			uni.showToast({
-				title: error.message || '操作失败',
-				icon: 'error'
-			})
-		}
+	const removeItem = async (item, index) => {
+		await removeItemBase(item, index)
 	}
 
 	/**
 	 * 分享房源
 	 */
 	const shareItem = async (item) => {
-		try {
-			console.log('📱 分享房源:', item.title)
-			await showShareOptions(item)
-		} catch (error) {
-			console.error('📱 分享失败:', error)
-			uni.showToast({
-				title: error.message || '分享失败',
-				icon: 'error'
-			})
-		}
-	}
-
-	/**
-	 * 跳转到详情页
-	 */
-	const goToDetail = (item) => {
-		console.log('📱 跳转详情页:', item.title)
-		uni.navigateTo({
-			url: `/pages/detail/detail?id=${item.homestayId}`
-		})
-	}
-
-	/**
-	 * 跳转到首页
-	 */
-	const goToHome = () => {
-		console.log('📱 跳转首页')
-		uni.switchTab({
-			url: '/pages/index/index'
-		})
-	}
-
-	/**
-	 * 重试加载
-	 */
-	const retryLoad = () => {
-		hasError.value = false
-		errorMessage.value = ''
-		loadLikeList()
-	}
-	
-	/**
-	 * 处理图片加载错误
-	 */
-	const handleImageError = (e) => {
-		console.warn('图片加载失败:', e)
-		// 可以设置默认图片或显示占位符
+		// 直接使用Hook中的分享功能，已经集成了统一的错误处理
+		await shareItemBase(item)
 	}
 </script>
 
 <style lang="scss" scoped>
-	.container {
-		min-height: 100vh;
-		position: relative;
-		
-		&::before {
-			content: '';
-			position: fixed;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-			opacity: 0.05;
-			z-index: -1;
-		}
-	}
-
 	.like-list {
 		padding: 30rpx 20rpx;
 		max-width: 750rpx;
 		margin: 0 auto;
-	}
-
-	.like-item {
-		background: #fff;
-		border-radius: 20rpx;
-		margin-bottom: 30rpx;
-		overflow: hidden;
-		box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.08);
-		display: flex;
-		align-items: stretch;
-		transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-		position: relative;
-		border: 1rpx solid rgba(255, 255, 255, 0.8);
-		min-height: 200rpx;
-		
-		&:hover {
-			transform: translateY(-4rpx);
-			box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.12);
-		}
-		
-		&:active {
-			transform: scale(0.98);
-		}
-		
-		&::before {
-			content: '';
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
-			height: 4rpx;
-			background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-			opacity: 0;
-			transition: opacity 0.3s ease;
-		}
-		
-		&:hover::before {
-			opacity: 1;
-		}
-	}
-
-	.item-image {
-		width: 300rpx;
-		flex-shrink: 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		position: relative;
-		overflow: hidden;
-
-		image {
-			width: 100%;
-			height: 100%;
-			object-fit: cover;
-			transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-			border-radius: 20rpx;
-		}
-		
-		&::after {
-			content: '';
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
-			bottom: 0;
-			background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-			opacity: 0;
-			transition: opacity 0.3s ease;
-		}
-		
-		&:hover::after {
-			opacity: 1;
-		}
-		
-		&:hover image {
-			transform: scale(1.05);
-		}
-	}
-
-	.item-content {
-		flex: 1;
-		padding: 10rpx 15rpx 10rpx 25rpx;
-		display: flex;
-		flex-direction: column;
-		justify-content: flex-start;
-		min-height: 200rpx;
-		position: relative;
-		gap: 15rpx;
-	}
-
-	.item-title {
-		font-size: 32rpx;
-		font-weight: 700;
-		color: #2d3748;
-		line-height: 1.4;
-		display: -webkit-box;
-		-webkit-box-orient: vertical;
-		-webkit-line-clamp: 2;
-		line-clamp: 2;
-		overflow: hidden;
-		letter-spacing: 0.5rpx;
-	}
-
-	.item-location {
-		display: flex;
-		align-items: center;
-		gap: 8rpx;
-		padding: 6rpx 10rpx;
-		border-radius: 10rpx;
-		width: fit-content;
-
-		text {
-			font-size: 24rpx;
-			color: #999;
-			font-weight: 500;
-		}
-	}
-
-	.item-price {
-		display: flex;
-		align-items: baseline;
-		background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-		background-clip: text;
-		font-size: 36rpx;
-		font-weight: 800;
-
-		.price-symbol {
-			font-size: 24rpx;
-			font-weight: 700;
-			margin-right: 2rpx;
-		}
-
-		.price-number {
-			font-size: 36rpx;
-			font-weight: 800;
-		}
-	}
-
-	.item-actions {
-		display: flex;
-		gap: 12rpx;
-		justify-content: space-between;
-	}
-
-	.action-btn {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 6rpx;
-		padding: 12rpx 18rpx;
-		border-radius: 20rpx;
-		background-color: #f8f9fa;
-		transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-		border: 1rpx solid #e9ecef;
-		position: relative;
-		overflow: hidden;
-
-		text {
-			font-size: 24rpx;
-			color: #666;
-			font-weight: 500;
-			position: relative;
-			z-index: 2;
-			text-align: center;
-		}
-
-		&::before {
-			content: '';
-			position: absolute;
-			top: 0;
-			left: -100%;
-			width: 100%;
-			height: 100%;
-			background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-			transition: left 0.5s ease;
-		}
-
-		&:active {
-			transform: scale(0.95);
-		}
-		
-		&:hover::before {
-			left: 100%;
-		}
-		
-		&:first-child {
-			background-color: #ff4757;
-			border-color: #ff4757;
-			box-shadow: 0 4rpx 12rpx rgba(255, 71, 87, 0.3);
-			
-			text {
-				color: #fff;
-				font-weight: 600;
-			}
-			
-			&:hover {
-				background-color: #ff3742;
-				transform: translateY(-2rpx);
-				box-shadow: 0 6rpx 16rpx rgba(255, 71, 87, 0.4);
-			}
-		}
-		
-		&:last-child {
-			background-color: #007AFF;
-			border-color: #007AFF;
-			box-shadow: 0 4rpx 12rpx rgba(0, 122, 255, 0.3);
-			
-			text {
-				color: #fff;
-				font-weight: 600;
-			}
-			
-			&:hover {
-				background-color: #0056b3;
-				transform: translateY(-2rpx);
-				box-shadow: 0 6rpx 16rpx rgba(0, 122, 255, 0.4);
-			}
-		}
 	}
 
 	.empty-state {

@@ -190,6 +190,29 @@ export const useLoadingStore = defineStore('loading', () => {
     }
   }
   
+  /**
+   * 设置错误状态
+   * @param {string} key - 错误状态标识
+   * @param {string|null} error - 错误信息
+   */
+  const setError = (key, error) => {
+    loadingStates.value.set(key, false)
+    // 只有在有实际错误时才打印日志
+    if (error !== null && error !== undefined) {
+      console.error(`错误状态设置: ${key}`, error)
+    }
+  }
+
+  /**
+   * 获取错误信息
+   * @param {string} key - 错误状态标识
+   * @returns {string} 错误信息
+   */
+  const getError = (key) => {
+    // 这里可以返回存储的错误信息
+    return null
+  }
+
   return {
     // State
     loadingStates,
@@ -217,6 +240,8 @@ export const useLoadingStore = defineStore('loading', () => {
     showLoadingWithTimeout,
     showMultipleLoading,
     hideMultipleLoading,
-    getLoadingStats
+    getLoadingStats,
+    setError,
+    getError
   }
 })

@@ -189,9 +189,12 @@ const props = defineProps({
 const emit = defineEmits([
 	'userClick',      // 用户点击事件
 	'actionClick',    // 操作按钮点击事件
+	'action-click',   // 操作按钮点击事件（kebab-case）
 	'emptyAction',    // 空状态操作事件
+	'empty-action',   // 空状态操作事件（kebab-case）
 	'retry',          // 重试事件
-	'imageError'      // 图片错误事件
+	'imageError',     // 图片错误事件
+	'image-error'     // 图片错误事件（kebab-case）
 ])
 
 // ==================== 计算属性 ====================
@@ -199,7 +202,10 @@ const emit = defineEmits([
 /**
  * 是否为空状态
  */
-const isEmpty = computed(() => props.list.length === 0)
+const isEmpty = computed(() => {
+	const list = props.list
+	return Array.isArray(list) ? list.length === 0 : true
+})
 
 // ==================== 方法定义 ====================
 
@@ -208,6 +214,29 @@ const isEmpty = computed(() => props.list.length === 0)
  */
 const getUserKey = (user, index) => {
 	return user.followId || user.fanId || user.userId || user.id || index
+}
+
+/**
+ * 获取用户ID
+ */
+const getUserId = (user) => {
+	console.log(`📱 UserList获取用户ID - 原始用户数据:`, user)
+	
+	// 根据不同的列表类型使用不同的字段名
+	let userId
+	if (props.actionType === 'remove') {
+		// 粉丝列表：使用 fanUserId
+		userId = user.fanUserId || user.userId || user.id
+	} else if (props.actionType === 'follow') {
+		// 关注列表：使用 followUserId
+		userId = user.followUserId || user.userId || user.id
+	} else {
+		// 其他情况：使用通用字段
+		userId = user.userId || user.id
+	}
+	
+	console.log(`📱 UserList获取的用户ID:`, userId)
+	return userId
 }
 
 /**
@@ -246,7 +275,10 @@ const getUserFansCount = (user) => {
  */
 const getActionButtonText = (user) => {
 	if (props.actionType === 'follow') {
-		return user.isFollowing ? '取消关注' : '关注'
+		// 关注列表页面：显示的都是已关注的用户，按钮应该显示"取消关注"
+		// 如果用户数据中有isFollowing字段，则根据该字段判断
+		// 否则默认为已关注状态（因为这是关注列表页面）
+		return (user.isFollowing !== false) ? '取消关注' : '关注'
 	} else if (props.actionType === 'remove') {
 		return '移除粉丝'
 	}
@@ -259,7 +291,10 @@ const getActionButtonText = (user) => {
 const getActionButtonClass = (user) => {
 	const baseClass = 'action-btn'
 	if (props.actionType === 'follow') {
-		return user.isFollowing ? `${baseClass} unfollow-btn` : `${baseClass} follow-btn`
+		// 关注列表页面：显示的都是已关注的用户，按钮应该显示"取消关注"样式
+		// 如果用户数据中有isFollowing字段，则根据该字段判断
+		// 否则默认为已关注状态（因为这是关注列表页面）
+		return (user.isFollowing !== false) ? `${baseClass} unfollow-btn` : `${baseClass} follow-btn`
 	} else if (props.actionType === 'remove') {
 		return `${baseClass} remove-btn`
 	}
@@ -270,14 +305,39 @@ const getActionButtonClass = (user) => {
  * 处理用户点击事件
  */
 const handleUserClick = (user) => {
-	emit('userClick', user)
+	console.log(`📱 UserList处理用户点击:`, user)
+	
+	// 确保用户对象包含正确的userId
+	const userId = getUserId(user)
+	const userWithId = {
+		...user,
+		userId: userId
+	}
+	
+	console.log(`📱 UserList处理后的用户数据:`, userWithId)
+	
+	emit('userClick', userWithId)
 }
 
 /**
  * 处理操作按钮点击事件
  */
 const handleActionClick = (user, index) => {
-	emit('actionClick', { user, index })
+	// 确保用户对象包含正确的userId
+	const userId = getUserId(user)
+	const userWithId = {
+		...user,
+		userId: userId
+	}
+	
+	console.log(`📱 UserList处理操作点击:`, {
+		originalUser: user,
+		userId: userId,
+		userWithId: userWithId
+	})
+	
+	// 只发出一个事件，避免重复调用
+	emit('action-click', { user: userWithId, index })
 }
 
 /**
@@ -285,6 +345,8 @@ const handleActionClick = (user, index) => {
  */
 const handleEmptyAction = () => {
 	emit('emptyAction')
+	// 同时发出empty-action事件以保持兼容性
+	emit('empty-action')
 }
 
 /**
@@ -299,6 +361,8 @@ const handleRetry = () => {
  */
 const handleImageError = (event) => {
 	emit('imageError', { event, user: event.target })
+	// 同时发出image-error事件以保持兼容性
+	emit('image-error', { event, user: event.target })
 }
 </script>
 

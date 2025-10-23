@@ -36,7 +36,7 @@ export function useUserListPage(options = {}) {
 	 */
 	onLoad(async () => {
 		console.log(`📱 ${pageName}页面加载`)
-		await userListState.loadUserList()
+		await userListState.loadList()
 	})
 
 	/**
