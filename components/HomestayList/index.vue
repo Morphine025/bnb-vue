@@ -14,7 +14,7 @@
 		>
 			<template v-slot:left="{ leftList }">
 				<HomestayCard 
-					v-for="(item, index) in leftList" 
+					v-for="(item, index) in getValidItems(leftList)" 
 					:key="`left-${index}`"
 					:data="item"
 					layout="waterfall"
@@ -24,7 +24,7 @@
 			</template>
 			<template v-slot:right="{ rightList }">
 				<HomestayCard 
-					v-for="(item, index) in rightList" 
+					v-for="(item, index) in getValidItems(rightList)" 
 					:key="`right-${index}`"
 					:data="item"
 					layout="waterfall"
@@ -33,6 +33,12 @@
 				/>
 			</template>
 		</up-waterfall>
+		
+		<!-- 双排瀑布流空状态 -->
+		<view v-if="!isSingleColumn && list.length === 0 && !isLoading" class="empty-state">
+			<up-icon name="inbox" size="80" color="#ccc"></up-icon>
+			<text class="empty-text">{{ emptyText || '暂无数据' }}</text>
+		</view>
 		
 		<!-- 单排列表布局 -->
 		<scroll-view 
@@ -52,8 +58,8 @@
 			/>
 		</scroll-view>
 		
-		<!-- 空状态 -->
-		<view v-if="list.length === 0 && !isLoading" class="empty-state">
+		<!-- 单排列表空状态 -->
+		<view v-if="isSingleColumn && list.length === 0 && !isLoading" class="empty-state">
 			<up-icon name="inbox" size="80" color="#ccc"></up-icon>
 			<text class="empty-text">{{ emptyText || '暂无数据' }}</text>
 		</view>
@@ -152,6 +158,17 @@ const handleItemClick = (item) => {
  */
 const handleImageError = (error) => {
 	emit('imageError', error)
+}
+
+/**
+ * 过滤有效的数据项
+ * 确保只渲染有效的数据对象
+ * @param {Array} items - 数据项数组
+ * @returns {Array} 过滤后的有效数据项
+ */
+const getValidItems = (items) => {
+	if (!Array.isArray(items)) return []
+	return items.filter(item => item && typeof item === 'object' && (item.id || item.title || item.img))
 }
 
 // ==================== 暴露方法 ====================

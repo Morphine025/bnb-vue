@@ -1,5 +1,6 @@
 <template>
 	<view 
+		v-if="isValidData"
 		:class="['homestay-card', layout === 'single' ? 'single-card' : 'post-card']" 
 		@click="handleClick"
 	>
@@ -127,6 +128,8 @@
  * 主要功能：图片显示、位置信息、价格展示、互动统计、用户信息
  */
 
+import { computed } from 'vue'
+
 // ==================== Props定义 ====================
 
 const props = defineProps({
@@ -135,7 +138,7 @@ const props = defineProps({
 	 */
 	data: {
 		type: Object,
-		required: true,
+		required: false,
 		default: () => ({})
 	},
 	
@@ -152,6 +155,20 @@ const props = defineProps({
 // ==================== 事件定义 ====================
 
 const emit = defineEmits(['click', 'imageError'])
+
+// ==================== 计算属性 ====================
+
+/**
+ * 验证数据是否有效
+ * 确保data对象存在且包含必要字段
+ */
+const isValidData = computed(() => {
+	if (!props.data || typeof props.data !== 'object') {
+		return false
+	}
+	// 检查是否有基本的必要字段
+	return props.data.id || props.data.title || props.data.img
+})
 
 // ==================== 方法定义 ====================
 
