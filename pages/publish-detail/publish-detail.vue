@@ -384,8 +384,8 @@ onMounted(() => {
 		// 检测编辑模式
 		checkEditMode(options)
 		
-		// 如果不是编辑模式，加载草稿数据
-		if (!isEditMode.value) {
+		// 如果不是编辑模式且不是新建模式，加载草稿数据
+		if (!isEditMode.value && options.mode !== 'new') {
 			loadDraftData()
 		}
 	}, 150)
@@ -473,6 +473,7 @@ const confirmDisclaimer = () => {
 // 页面加载时检测编辑模式
 const checkEditMode = (options) => {
 	if (options.mode === 'edit' && options.id) {
+		// 编辑模式
 		isEditMode.value = true
 		homestayId.value = options.id
 		pageTitle.value = '编辑民宿'
@@ -480,8 +481,16 @@ const checkEditMode = (options) => {
 		showDisclaimer.value = false
 		// 加载民宿数据
 		loadHomestayData(options.id)
+	} else if (options.mode === 'new') {
+		// 新建模式（从发布页进入），显示免责声明，不加载草稿
+		isEditMode.value = false
+		pageTitle.value = '发布民宿'
+		showDisclaimer.value = true
+		startCountdown()
 	} else {
-		// 新建模式，显示免责声明
+		// 默认模式（可能是从草稿进入），显示免责声明，加载草稿
+		isEditMode.value = false
+		pageTitle.value = '发布民宿'
 		showDisclaimer.value = true
 		startCountdown()
 	}

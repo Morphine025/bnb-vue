@@ -5,11 +5,11 @@
 				<uni-list>
 					<uni-list-item 
 						:show-extra-icon="true" 
-						:extra-icon="extraIcon1" 
+						:extra-icon="publishIcon" 
 						showArrow 
 						title="发布民宿信息" 
 						clickable 
-						@click="goToPublishDetail"
+						@click="handlePublishClick"
 					></uni-list-item>
 				</uni-list>
 			</view>
@@ -20,32 +20,49 @@
 <script setup>
 	/**
 	 * 发布页面组件
-	 * 功能描述：发布民宿转让信息入口
-	 * 主要功能：跳转到发布详情页面
+	 * 功能描述：发布民宿转让信息入口页面
+	 * 主要功能：
+	 * - 提供发布民宿信息的入口
+	 * - 检查用户登录状态
+	 * - 跳转到发布详情页面
+	 * 入参：无
+	 * 返回参数：无
+	 * url地址：/pages/publish/publish
+	 * 请求方式：页面路由
 	 */
 	
 	// 导入Vue响应式API
-	import { reactive } from 'vue'
+	import { ref } from 'vue'
 	
 	// 导入uni-app生命周期钩子
 	import { onLoad } from '@dcloudio/uni-app'
 	
+	// 导入Pinia状态管理
+	import { useUserStore } from '@/stores'
+	
 	// 导入Loading管理工具
 	import { showLoading, hideLoading } from '@/utils'
 	
+	// 获取用户状态管理
+	const userStore = useUserStore()
+	
 	/**
 	 * 页面加载时初始化
+	 * 功能：页面初始化，检查用户登录状态
 	 */
 	onLoad(() => {
 		console.log('发布页面加载')
+		// 初始化用户数据
+		userStore.initializeUser()
 	})
 	
 	/**
-	 * 检查登录状态
+	 * 检查用户登录状态
+	 * @returns {boolean} 是否已登录
 	 */
 	const checkLoginStatus = () => {
-		const token = uni.getStorageSync('token')
-		if (!token) {
+		// 使用store中的登录状态检查
+		if (!userStore.isLoggedIn) {
 			uni.showModal({
 				title: '提示',
 				content: '请先登录后再发布民宿信息',
@@ -63,9 +80,10 @@
 	}
 
 	/**
-	 * 跳转到发布详情页面
+	 * 处理发布按钮点击事件
+	 * 功能：检查登录状态并跳转到发布详情页面
 	 */
-	const goToPublishDetail = () => {
+	const handlePublishClick = () => {
 		// 检查登录状态
 		if (!checkLoginStatus()) {
 			return
@@ -76,10 +94,12 @@
 			title: '正在跳转...'
 		})
 		
+		// 跳转到发布详情页面，传递新建模式参数
 		uni.navigateTo({
-			url: '/pages/publish-detail/publish-detail',
+			url: '/pages/publish-detail/publish-detail?mode=new',
 			success: () => {
 				hideLoading()
+				console.log('成功跳转到发布详情页面（新建模式）')
 			},
 			fail: (error) => {
 				hideLoading()
@@ -93,8 +113,8 @@
 		})
 	}
 
-	// 功能菜单图标配置
-	const extraIcon1 = reactive({
+	// 发布图标配置 - 使用ref响应式数据
+	const publishIcon = ref({
 		color: '#666666',
 		size: '28',
 		type: 'home'
