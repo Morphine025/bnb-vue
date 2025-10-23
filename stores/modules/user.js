@@ -340,9 +340,13 @@ export const useUserStore = defineStore('user', () => {
   // 获取关注列表
   const fetchFollowList = async (page = 1, size = 10) => {
     try {
+      console.log(`🏪 Store获取关注列表 - 页码: ${page}, 大小: ${size}`)
       const response = await API.user.getFollowList({ page, size })
+      console.log(`🏪 Store关注列表API响应:`, response)
       if (response && response.code === 1) {
-        return response.data.list || []
+        const result = response.data.list || []
+        console.log(`🏪 Store关注列表数据:`, result)
+        return result
       } else {
         throw new Error(response?.msg || '获取关注列表失败')
       }
@@ -355,9 +359,13 @@ export const useUserStore = defineStore('user', () => {
   // 获取粉丝列表
   const fetchFansList = async (page = 1, size = 10) => {
     try {
+      console.log(`🏪 Store获取粉丝列表 - 页码: ${page}, 大小: ${size}`)
       const response = await API.user.getFansList({ page, size })
+      console.log(`🏪 Store粉丝列表API响应:`, response)
       if (response && response.code === 1) {
-        return response.data.list || []
+        const result = response.data.list || []
+        console.log(`🏪 Store粉丝列表数据:`, result)
+        return result
       } else {
         throw new Error(response?.msg || '获取粉丝列表失败')
       }
@@ -411,6 +419,39 @@ export const useUserStore = defineStore('user', () => {
       throw error
     }
   }
+
+  // 用户列表缓存管理 - 使用响应式ref确保数据变化能被检测到
+  const userListCache = ref({
+    followList: [],
+    fansList: []
+  })
+
+  // 获取缓存的用户列表
+  const getUserList = (listType) => {
+    const result = userListCache.value[listType] || []
+    console.log(`🏪 Store获取用户列表 - 类型: ${listType}, 数据:`, result)
+    return result
+  }
+
+  // 设置用户列表缓存
+  const setUserList = (listType, list) => {
+    console.log(`🏪 Store设置用户列表 - 类型: ${listType}, 数据:`, list)
+    // 确保响应式更新
+    userListCache.value = {
+      ...userListCache.value,
+      [listType]: list
+    }
+    console.log(`🏪 Store设置后的缓存:`, userListCache.value)
+  }
+
+  // 清空用户列表缓存
+  const clearUserListCache = (listType) => {
+    if (listType) {
+      userListCache.value[listType] = []
+    } else {
+      userListCache.value = { followList: [], fansList: [] }
+    }
+  }
   
   return {
     // State
@@ -440,6 +481,11 @@ export const useUserStore = defineStore('user', () => {
     fetchFansList,
     toggleFollowUser,
     checkUserFollowStatus,
-    removeUserFan
+    removeUserFan,
+    
+    // List Cache Methods
+    getUserList,
+    setUserList,
+    clearUserListCache
   }
 })
